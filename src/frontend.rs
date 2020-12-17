@@ -1,7 +1,6 @@
 use std::rc::Rc;
 use std::collections::{HashSet, HashMap};
 use std::path::{Path, PathBuf};
-use std::convert::AsRef;
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
 
@@ -14,6 +13,8 @@ use serde::{Serialize, Deserialize};
 pub struct Env {
     // pub root_dir: PathBuf,
     pub current_dir: PathBuf,
+    pub output_dir: PathBuf,
+    pub base_url: Option<String>,
 }
 
 impl Env {
@@ -111,10 +112,13 @@ pub(crate) mod manifest_format {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// CONFIG
+///////////////////////////////////////////////////////////////////////////////
+
 /// Normalized version of the raw manifest format.
 pub mod config {
     use super::*;
-
     #[derive(Debug, Clone)]
     pub struct Config {
         pub input_files: Vec<PathBuf>,
@@ -154,10 +158,12 @@ pub mod config {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// CLI
+///////////////////////////////////////////////////////////////////////////////
+
 pub mod cli {
     use super::*;
-
-
     /// The Subscript CLI frontend. 
     #[derive(Debug, StructOpt)]
     pub enum Cli {
@@ -170,25 +176,116 @@ pub mod cli {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// CACHE
+///////////////////////////////////////////////////////////////////////////////
+
+pub mod cache {
+    use super::*;
+    use crate::data::utils;
+    use std::collections::HashMap;
+    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
+    use std::borrow::Cow;
+    use std::collections::HashSet;
+    use std::path::{PathBuf, Path};
+    pub fn cache_file<P: AsRef<Path>>(env: &Env, source_path: &P) -> Option<String> {
+        GLOBAL_CACHE.cache_file(env, &source_path.as_ref().to_owned())
+    }
+    pub fn cache_inline_text<P: AsRef<Path>>(env: &Env, source_path: &P) -> Option<String> {
+        GLOBAL_CACHE.cache_inline_text(env, &source_path.as_ref().to_owned())
+    }
+    type SourcePath = PathBuf;
+    type OutputPath = PathBuf;
+    struct Cache(Arc<Mutex<HashMap<SourcePath, CachedItem>>>);
+    lazy_static! {
+        /// This is an example for using doc comment attributes
+        static ref GLOBAL_CACHE: Cache = Cache::new();
+    }
+    #[derive(Debug, Clone)]
+    enum CachedItem {
+        /// For files that are loaded/feteched at runtime.
+        FilePath {output: String},
+        /// For file-contents that are inlined in the HTML tree.
+        InlineText {contents: String},
+    }
+    impl Cache {
+        fn new() -> Self {
+            Cache(Arc::new(Mutex::new(HashMap::default())))
+        }
+        fn lookup(&self, path: &PathBuf) -> Option<CachedItem> {
+            self.0.lock().unwrap().get(path).map(|x| x.clone())
+        }
+        fn insert(&self, source_path: &PathBuf, cached_file: CachedItem) {
+            self.0.lock().unwrap().insert(source_path.clone(), cached_file);
+        }
+        fn cache_file(&self, env: &Env, source_path: &PathBuf) -> Option<String> {
+            if let Some(CachedItem::FilePath{output}) = self.lookup(source_path) {
+                return Some(output)
+            }
+            let out_path = utils::cache_file_dep(env, source_path)?;
+            let cached_file = CachedItem::FilePath {
+                output: out_path.clone(),
+            };
+            self.insert(source_path, cached_file);
+            Some(out_path)
+        }
+        fn cache_inline_text(&self, _: &Env, source_path: &PathBuf) -> Option<String> {
+            if let Some(CachedItem::InlineText{contents}) = self.lookup(source_path) {
+                return Some(contents)
+            }
+            // LOAD FILE
+            if let Ok(contents) = crate::frontend::io::try_load_text_file(source_path) {
+                let cached_file = CachedItem::InlineText {
+                    contents: contents.clone(),
+                };
+                self.insert(source_path, cached_file);
+                Some(contents)
+            } else {
+                eprintln!(
+                    "[warning] ignoring asset: {:?}",
+                    source_path,
+                );
+                None
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// BUILD
+///////////////////////////////////////////////////////////////////////////////
+
+pub fn apply_macros(env: &Env, html: &mut crate::data::Node) {
+    use crate::data::Node;
+    let env = env.clone();
+    html.eval(Rc::new(move |node: &mut Node| {
+        node.tag()
+            .map({
+                let env = env.clone();
+                move |node_tag| {
+                    for tag_macro in crate::macros::tag_macros(&env) {
+                        if tag_macro.tag == node_tag {
+                            (tag_macro.callback.0)(node);
+                        }
+                    }
+                }
+            });
+    }));
+}
+
 pub fn build(manifest_path: &str) {
     use crate::{data::*};
     let config = config::Config::init(manifest_path);
     for path in config.input_files {
         let env = Env {
             current_dir: path.parent().unwrap().to_owned(),
+            output_dir: config.output_dir.clone(),
+            base_url: None,
         };
         let html = io::load_text_file(path);
         let mut html = Node::parse_string(html);
-        html.eval(Rc::new(move |node: &mut Node| {
-            node.tag()
-                .map(|node_tag| {
-                    for tag_macro in crate::macros::tag_macros(&env) {
-                        if tag_macro.tag == node_tag {
-                            (tag_macro.callback.0)(node);
-                        }
-                    }
-                });
-        }));
+        apply_macros(&env, &mut html);
         let html_str = html.to_html_str(0);
         println!("{}", html_str);
     }

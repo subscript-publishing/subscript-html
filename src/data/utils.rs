@@ -60,3 +60,58 @@ pub fn is_header_tag(tag: &str) -> bool {
     tag == "h5" ||
     tag == "h6"
 }
+
+pub fn lookup_hash<H: std::hash::Hash>(data: &H) -> u64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    data.hash(&mut hasher);
+    hasher.finish()
+}
+
+pub fn cache_file_dep(
+    ctx: &crate::frontend::Env,
+    input_path: &PathBuf,
+) -> Option<String> {
+    let src_ext = input_path
+        .extension()
+        .and_then(|x| x.to_str().map(|x| x.to_owned()))
+        .map(|x| format!(".{}", x))?;
+    if let Ok(binary) = crate::frontend::io::try_load_binary_file(input_path) {
+        let uid = lookup_hash(&binary);
+        let file_name = format!("{}{}", uid, src_ext);
+        let output_file_path = ctx.output_dir
+            .join("ss-data")
+            .join(&PathBuf::from(file_name));
+        let parent_dir = output_file_path.parent().unwrap();
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(&parent_dir).unwrap();
+        }
+        if !output_file_path.exists() {
+            std::fs::write(&output_file_path, binary).unwrap();
+        }
+        let target_path = output_file_path
+            .strip_prefix(&ctx.output_dir)
+            .map(|x| x.to_owned())
+            .unwrap_or(output_file_path);
+        let target_path = target_path.to_str().unwrap();
+        if let Some(base_url) = ctx.base_url.clone() {
+            let base_url = base_url
+                .strip_suffix("/")
+                .map(|x| x.to_owned())
+                .unwrap_or(base_url);
+            Some(format!("{}/{}", base_url, target_path))
+        } else {
+            Some(format!(
+                "/{}",
+                target_path.to_owned()
+            ))
+        }
+    } else {
+        eprintln!(
+            "[warning] ignoring asset: {:?}",
+            input_path
+        );
+        Some(input_path.to_str().unwrap().to_owned())
+    }
+}

@@ -8,9 +8,6 @@ use serde::{Serialize, Deserialize};
 
 use crate::data::*;
 use crate::frontend::Env;
-// use crate::utils::{
-//     cache_file_dep,
-// };
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -20,12 +17,13 @@ use crate::frontend::Env;
 fn include_tag(env: &Env) -> TagMacro {
     let env = env.clone();
     let callback = Rc::new(move |node: &mut Node| {
-        let result = node
+        node
             .get_attr("src")
             .and_then(|src| env.try_load_text_file(src).ok())
             .and_then(|text| Some(Node::parse_string(text)))
             .map(|mut template| {
-                let embedded = node.get_children();
+                crate::frontend::apply_macros(&env, &mut template);
+                let mut embedded = node.get_children();
                 template.eval(Rc::new(move |child: &mut Node| {
                     if child.is_tag("content") {
                         *child = Node::Fragment(embedded.clone());
@@ -40,54 +38,123 @@ fn include_tag(env: &Env) -> TagMacro {
     }
 }
 
-pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
+pub fn img_tag(env: &Env) -> TagMacro {
+    let env = env.clone();
+    let processed_attr = "ss.img.processed";
+    let callback = Rc::new(move |node: &mut Node| {
+        node
+            .get_attr("width")
+            .map(|width| {
+                if node.has_attr("ss.proc.width") {
+                    return;
+                }
+                if let Some(style) = node.get_attr("style") {
+                    node.set_attr("style", format!(
+                        "{}; min-width: 0; max-width: {}; width: 100%;",
+                        style,
+                        width,
+                    ));
+                } else {
+                    node.set_attr("style", format!(
+                        ";min-width: 0; max-width: {}; width: 100%;",
+                        width,
+                    ));
+                }
+                node.set_attr("ss.proc.width", String::new());
+            });
+        // CACHE ASSET
+        node.get_attr("src")
+            .and_then(|src_path| {
+                if !node.has_attr(processed_attr) {
+                    let new_src = crate::frontend::cache::cache_file(&env, &src_path)?;
+                    node.set_attr("src", format!(
+                        "{}",
+                        new_src
+                    ));
+                    node.set_attr(processed_attr, String::from(""));
+                }
+                Some(())
+            });
+    });
+    TagMacro {
+        tag: String::from("img"),
+        callback: MacroCallbackMut(callback),
+    }
+}
+
+pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
+    let ctx = env.clone();
+    fn block_latex(node: &Node, value: String) -> Node {
+        let mut attrs = node.get_attributes();
+        attrs.insert(String::from("latex"), String::from("block"));
+        Node::new_element(
+            "div",
+            attrs,
+            &[Node::new_text(&format!("$${}$$", value))]
+        )
+    }
+    fn inline_latex(node: &Node, value: String) -> Node {
+        let mut attrs = node.get_attributes();
+        attrs.insert(String::from("latex"), String::from("inline"));
+        Node::new_element(
+            "span",
+            attrs,
+            &[Node::new_text(&format!("\\({}\\)", value))]
+        )
+    }
     vec![
-        include_tag(env),
+        TagMacro {
+            tag: String::from("tex"),
+            callback: MacroCallbackMut(Rc::new(|node: &mut Node| {
+                node.get_text_contents()
+                    .map(|text_contents| {
+                        let new_node = inline_latex(node, text_contents);
+                        *node = new_node;
+                    });
+            })),
+        },
+        TagMacro {
+            tag: String::from("texblock"),
+            callback: MacroCallbackMut(Rc::new(|node: &mut Node| {
+                node.get_text_contents()
+                    .map(|text_contents| {
+                        *node = block_latex(node, text_contents);
+                    });
+            })),
+        },
+        TagMacro {
+            tag: String::from("equation"),
+            callback: MacroCallbackMut(Rc::new(|node: &mut Node| {
+                node.get_text_contents()
+                    .map(|text_contents| {
+                        let new_node = block_latex(node, format!(
+                            "\\begin{{equation}}\n\\begin{{split}}\n{txt}\n\\end{{split}}\n\\end{{equation}}",
+                            txt=text_contents
+                        ));
+                        *node = new_node;
+                    });
+            })),
+        },
     ]
 }
 
-// pub fn include_tag() -> Macro {
-//     // let ctx = ctx.clone();
-//     Macro::match_tag("include", Rc::new(move |node: &mut Node| {
-//         let source_dir = ctx.source_dir();
-//         let root_dir = ctx.root_dir.clone();
-//         node.get_attr("src")
-//             .and_then(|src_path_str| {
-//                 let src_path = FilePath::resolve_include_path(
-//                     &ctx,
-//                     &src_path_str,
-//                 )?;
-//                 if !src_path.exists() {
-//                     eprintln!("[WARNING] missing file: {}", src_path);
-//                     return None;
-//                 }
-//                 let base: String = src_path.load_text_file();
-//                 let had_doctype = base.contains("<!DOCTYPE html>");
-//                 let mut base = Node::parse_str(&base);
-//                 // Provision the new document:
-//                 {
-//                     let mut new_ctx = ctx.clone();
-//                     new_ctx.source = ctx
-//                         .source_dir()
-//                         .unwrap()
-//                         .join(&ctx.root_dir, &src_path)
-//                         .unwrap();
-//                     hooks::document(&new_ctx, &mut base);
-//                 }
-//                 let mut base = base.to_html_str(0);
-//                 if had_doctype {
-//                     base = format!("<!DOCTYPE html>\n{}", base);
-//                 }
-//                 Some(base)
-//             })
-//             .map(|contents| {
-//                 let embeded_contents = Node::Fragment(node.get_children()).to_html_str(0);
-//                 let contents = contents.replace(
-//                     "<content></content>",
-//                     &embeded_contents
-//                 );
-//                 let mut new_node = Node::parse_str(&contents);
-//                 *node = new_node;
-//             });
-//     }))
-// }
+pub fn subscript_deps(ctx: &Env) -> TagMacro {
+    let ctx = ctx.clone();
+    TagMacro {
+        tag: String::from("head"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            let deps = Node::parse_str(include_str!("../assets/deps.html"));
+            node.append_children(deps.into_fragment());
+        })),
+    }
+}
+
+pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
+    let mut items = vec![
+        include_tag(env),
+        subscript_deps(env),
+    ];
+    items.append(&mut latex_suit(env));
+    items
+}
+
