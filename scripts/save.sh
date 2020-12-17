@@ -1,1 +1,0 @@
-git add . && git commit -m "save school-notes changes" && git push

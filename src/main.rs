@@ -4,15 +4,12 @@
 #[macro_use] extern crate markup5ever;
 #[macro_use] extern crate lazy_static;
 
+pub mod frontend;
 pub mod data;
 pub mod parser;
 pub mod macros;
-pub mod utils;
-pub mod cli;
-pub mod server;
-pub mod browser;
-
 
 fn main() {
-    cli::run();
+    // cli::run();
+    frontend::run();
 }

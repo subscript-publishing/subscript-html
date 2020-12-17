@@ -1,11 +1,6 @@
 set -e
 
-rm -rf school-notes/output
-cargo run -- compile \
-    --root=school-notes \
-    --input 'school-notes/pages/**/*.html' \
-    --output=school-notes/output \
-    --trim pages
-
+rm -rf examples/school-notes/output
+cargo run -- compile --manifest examples/school-notes/subscript.toml
 
 

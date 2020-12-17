@@ -8,7 +8,9 @@ use std::convert::AsRef;
 use std::hash::Hash;
 
 use crate::parser;
-use crate::macros;
+use crate::frontend::Env;
+
+pub mod utils;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -22,16 +24,13 @@ pub enum Either<L, R> {
 
 
 #[derive(Clone)]
-struct MacroCallback(MacroFunction<Result<(), ()>>);
+pub struct MacroCallbackMut(pub Rc<dyn Fn(&mut Node)>);
 
-impl std::fmt::Debug for MacroCallback {
+impl std::fmt::Debug for MacroCallbackMut {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MacroCallback").finish()
+        f.debug_struct("MacroCallbackMut").finish()
     }
 }
-
-/// `Ret` is the **return type**.
-pub type MacroFunction<Ret> = Rc<dyn Fn(&mut Node) -> Ret>;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -39,54 +38,43 @@ pub type MacroFunction<Ret> = Rc<dyn Fn(&mut Node) -> Ret>;
 ///////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone)]
-pub struct Macro {
-    name: String,
-    callback: MacroCallback,
+pub struct TagMacro {
+    pub tag: String,
+    pub callback: MacroCallbackMut,
 }
 
-impl Macro {
-    pub fn new(name: &str, callback: MacroFunction<Option<Result<(), ()>>>) -> Self {
-        Macro{
-            name: name.to_owned(),
-            callback: MacroCallback(Rc::new(move |x| {
-                match callback(x) {
-                    Some(x) => x,
-                    _ => Ok(())
-                }
-            })),
+// impl TagMacro {
+//     pub fn consider(&self, env: &Env, node: &mut Node) {
+        
+//     }
+// }
+
+
+///////////////////////////////////////////////////////////////////////////////
+// URL HELPER TYPE
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone)]
+pub enum Url {
+    FilePath(PathBuf),
+    Other(String),
+}
+
+impl Url {
+    pub fn new(value: String) -> Self {
+        let is_http = value.starts_with("http");
+        if is_http {
+            return Url::Other(value)
         }
+        Url::FilePath(PathBuf::from(value))
     }
-    pub fn new_void(name: &str, callback: MacroFunction<Option<()>>) -> Self {
-        Macro{
-            name: name.to_owned(),
-            callback: MacroCallback(Rc::new(move |x| {
-                let _ = callback(x);
-                Ok(())
-            })),
-        }
-    }
-    pub fn match_tag(tag: &str, callback: MacroFunction<()>) -> Self {
-        Macro::new_void(tag, {
-            let tag = String::from(tag);
-            Rc::new(move |node: &mut Node| -> Option<()> {
-                if tag == node.tag()? {
-                    callback(node);
-                }
-                Some(())
-            })
-        })
-    }
-    pub fn eval(&self, node: &mut Node) {
-        match self.callback.0(node) {
-            Err(_) => {
-                eprintln!("macro <{}> failed", self.name);
-                panic!()
-            }
-            _ => (),
+    pub fn map_file_path<T>(&self, f: impl Fn(&Path)->T) -> Option<T> {
+        match self {
+            Url::Other(_) => None,
+            Url::FilePath(x) => Some(f(x))
         }
     }
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -225,7 +213,10 @@ impl Node {
             })
     }
     pub fn parse_str(html_str: &str) -> Self {
-        Node::Fragment(crate::parser::parse_html_str(html_str).payload)
+        Node::Fragment(crate::parser::html::parse_html_str(html_str).payload)
+    }
+    pub fn parse_string(html_str: String) -> Self {
+        Node::Fragment(crate::parser::html::parse_html_str(&html_str).payload)
     }
     pub fn eval(&mut self, f: Rc<dyn Fn(&mut Node)>) {
         match self {
@@ -243,16 +234,16 @@ impl Node {
         }
         f(self);
     }
-    pub fn apply(&mut self, f: Macro) {
-        self.eval(Rc::new(move |x| {
-            f.eval(x)
-        }))
-    }
-    pub fn apply_all(&mut self, macros: Vec<Macro>) {
-        for mut m in macros {
-            self.apply(m);
-        }
-    }
+    // pub fn apply(&mut self, f: Macro) {
+    //     self.eval(Rc::new(move |x| {
+    //         f.eval(x)
+    //     }))
+    // }
+    // pub fn apply_all(&mut self, macros: Vec<Macro>) {
+    //     for mut m in macros {
+    //         self.apply(m);
+    //     }
+    // }
     pub fn tag(&self) -> Option<String> {
         match self {
             Node::Element(element) => Some(element.tag.clone()),
@@ -413,7 +404,6 @@ impl Node {
             attrs,
             children: children.to_owned(),
         };
-        macros::hooks::new_element(&mut element);
         Node::Element(Box::new(element))
     }
     pub fn new_text(value: &str) -> Self {
@@ -425,7 +415,7 @@ impl Node {
         }
         match self {
             Node::Element(element) => {
-                if crate::utils::is_inline_tag(&element.tag) {
+                if utils::is_inline_tag(&element.tag) {
                     return true;
                 }
                 if element.tag == String::from("tex") {
@@ -454,285 +444,286 @@ pub struct Element {
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct Styling {
+pub struct Styling {}
 
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // COMPILER MEAT
 ///////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone)]
-pub struct Context {
-    pub source: FilePath,
-    pub root_dir: FilePath,
-    pub output_dir: FilePath,
-    pub base_url: Option<String>,
-    /// When in server/watch mode, we don't want to process e.g. images
-    /// for every file change.
-    pub fast_upate_mode: bool,
-    pub changed_file: Option<FilePath>,
-}
+// #[derive(Debug, Clone)]
+// pub struct Context {
+//     pub source: PathBuf,
+//     pub root_dir: PathBuf,
+//     pub output_dir: FilePath,
+//     pub base_url: Option<String>,
+//     /// When in server/watch mode, we don't want to process e.g. images
+//     /// for every file change.
+//     pub fast_upate_mode: bool,
+//     pub changed_file: Option<FilePath>,
+// }
 
-impl Context {
-    pub fn new<P: AsRef<Path>>(
-        root_dir: P,
-        output_dir: P,
-        source: P,
-    ) -> Self {
-        Context {
-            source: FilePath::new(source.as_ref()).unwrap(),
-            root_dir: FilePath::new(root_dir.as_ref()).unwrap(),
-            output_dir: FilePath::new(output_dir.as_ref()).unwrap(),
-            base_url: None,
-            fast_upate_mode: false,
-            changed_file: None,
-        }
-    }
-    pub fn source_dir(&self) -> Option<FilePath> {
-        let path = self.source.0.parent()?.to_owned();
-        Some(FilePath(path))
-    }
-}
+// impl Context {
+//     pub fn new<P: AsRef<Path>>(
+//         root_dir: P,
+//         output_dir: P,
+//         source: P,
+//     ) -> Self {
+//         Context {
+//             source: FilePath::new(source.as_ref()).unwrap(),
+//             root_dir: FilePath::new(root_dir.as_ref()).unwrap(),
+//             output_dir: FilePath::new(output_dir.as_ref()).unwrap(),
+//             base_url: None,
+//             fast_upate_mode: false,
+//             changed_file: None,
+//         }
+//     }
+//     pub fn source_dir(&self) -> Option<FilePath> {
+//         let path = self.source.0.parent()?.to_owned();
+//         Some(FilePath(path))
+//     }
+// }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct FilePath(PathBuf);
+// #[derive(Clone, PartialEq, Eq, Hash)]
+// pub struct FilePath(PathBuf);
 
-impl std::fmt::Debug for FilePath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(path) = self.0.to_str() {
-            let formatted = format!("FilePath(\"{}\")", path);
-            f.debug_struct(&formatted).finish()
-        } else {
-            f.debug_struct("FilePath").finish()
-        }
-    }
-}
-impl std::fmt::Display for FilePath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_str().unwrap())
-    }
-}
+// impl std::fmt::Debug for FilePath {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         if let Some(path) = self.0.to_str() {
+//             let formatted = format!("FilePath(\"{}\")", path);
+//             f.debug_struct(&formatted).finish()
+//         } else {
+//             f.debug_struct("FilePath").finish()
+//         }
+//     }
+// }
+// impl std::fmt::Display for FilePath {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", self.0.to_str().unwrap())
+//     }
+// }
 
 
-/// We need to be careful where this is used, since this is used in places where URLs may occur.
-impl FilePath {
-    /// All paths in Subsystem are resolved
-    /// into absolute path files (to keep things consistent). 
-    pub fn new<P: AsRef<Path>>(path: P) -> Option<Self> {
-        let path = path.as_ref().to_owned();
-        let is_http_path = || {
-            let path = path.to_str().unwrap();
-            path.starts_with("http")
-        };
-        if path.is_absolute() {
-            Some(FilePath(path))
-        } else if is_http_path() {
-            None
-        } else {
-            let pwd = std::env::current_dir().unwrap();
-            Some(FilePath(pwd.join(path)))
-        }
-    }
-    /// All paths in Subsystem are resolved
-    /// into absolute path files (to keep things consistent). 
-    /// This is relative to the root dir.
-    pub fn resolve_child_path<P: AsRef<Path>>(
-        parent: P,
-        path: P,
-    ) -> Option<Self> {
-        if path.as_ref().is_absolute() {
-            FilePath::new(path)
-        } else {
-            FilePath::new(parent.as_ref().join(path))
-        }
-    }
-    /// This is relative to the source dir.
-    /// This is used for e.g. `<include>` paths that are relative to
-    /// the source file.
-    pub fn resolve_include_path<P: AsRef<Path>>(
-        ctx: &Context,
-        path: P,
-    ) -> Option<Self> {
-        let skip = path
-            .as_ref()
-            .to_str()
-            .unwrap()
-            .starts_with("http");
-        if skip {
-            return None
-        }
-        let source_dir = ctx.source_dir()?;
-        FilePath::resolve_child_path(
-            &ctx.root_dir,
-            &source_dir.join(&ctx.root_dir, path.as_ref())?
-        )
-    }
-    pub fn is_child_path(&self, parent_path: &FilePath) -> bool {
-        self.0.starts_with(parent_path)
-    }
-    pub fn join<B: AsRef<Path>, P: AsRef<Path>>(&self, base_path: B, sub_path: P) -> Option<FilePath> {
-        if sub_path.as_ref().is_relative() {
-            return FilePath::new(self.0.join(sub_path));
-        }
-        FilePath::new(self.0.join(sub_path))
-    }
-    pub fn to_str(&self) -> &str {
-        self.0.to_str().unwrap()
-    }
-    pub fn to_path_buffer(self) -> PathBuf {
-        self.0
-    }
-    pub fn load_text_file(&self) -> String {
-        match self.try_load_text_file() {
-            Ok(x) => x,
-            Err(_) => {
-                eprintln!("missing file {:?}", self.to_str());
-                panic!()
-            }
-        }
-    }
-    pub fn try_load_text_file(&self) -> Result<String, ()> {
-        std::fs::read(&self)
-            .map_err(|_| ())
-            .and_then(|x| String::from_utf8(x).map_err(|_| ()))
-    }
-    pub fn load_binary_file(&self) -> Vec<u8> {
-        match self.try_load_binary_file() {
-            Ok(x) => x,
-            Err(_) => {
-                eprintln!("missing file {:?}", self.to_str());
-                panic!()
-            }
-        }
-    }
-    pub fn try_load_binary_file(&self) -> Result<Vec<u8>, ()> {
-        match std::fs::read(&self) {
-            Ok(x) => Ok(x),
-            Err(_) => Err(())
-        }
-    }
-    pub fn parent(&self) -> FilePath {
-        FilePath::new(self.0.parent().unwrap()).unwrap()
-    }
-    /// For source file paths.
-    /// Ensure `trim` is a PathBuf because it is a path fragment.
-    pub fn to_output_path(
-        &self,
-        ctx: &Context,
-        trim: &Option<PathBuf>,
-    ) -> FilePath {
-        let mut relative_path: PathBuf = {
-            self.strip_prefix(&ctx.root_dir).unwrap()
-        };
-        if let Some(trim) = trim {
-            relative_path = relative_path
-                .strip_prefix(trim)
-                .map(|x| x.to_owned())
-                .unwrap_or(relative_path);
-        }
-        let output_path = FilePath::new(ctx.output_dir.0.join(relative_path)).unwrap();
-        output_path
-    }
-    pub fn exists(&self) -> bool {
-        self.0.exists()
-    }
-    pub fn extension(&self) -> Option<String> {
-        self.0
-            .extension()
-            .map(|x| x.to_str().unwrap().to_owned())
-    }
-    pub fn strip_prefix<P: AsRef<Path>>(&self, prefix: P) -> Result<PathBuf, ()> {
-        self.0.strip_prefix(prefix)
-            .map(|x| x.to_owned())
-            .map_err(|_| ())
-    }
-}
+// /// We need to be careful where this is used, since this is used in places where URLs may occur.
+// impl FilePath {
+//     /// All paths in Subsystem are resolved
+//     /// into absolute path files (to keep things consistent). 
+//     pub fn new<P: AsRef<Path>>(path: P) -> Option<Self> {
+//         let path = path.as_ref().to_owned();
+//         let is_http_path = || {
+//             let path = path.to_str().unwrap();
+//             path.starts_with("http")
+//         };
+//         if path.is_absolute() {
+//             Some(FilePath(path))
+//         } else if is_http_path() {
+//             None
+//         } else {
+//             let pwd = std::env::current_dir().unwrap();
+//             Some(FilePath(pwd.join(path)))
+//         }
+//     }
+//     /// All paths in Subsystem are resolved
+//     /// into absolute path files (to keep things consistent). 
+//     /// This is relative to the root dir.
+//     pub fn resolve_child_path<P: AsRef<Path>>(
+//         parent: P,
+//         path: P,
+//     ) -> Option<Self> {
+//         if path.as_ref().is_absolute() {
+//             FilePath::new(path)
+//         } else {
+//             FilePath::new(parent.as_ref().join(path))
+//         }
+//     }
+//     /// This is relative to the source dir.
+//     /// This is used for e.g. `<include>` paths that are relative to
+//     /// the source file.
+//     pub fn resolve_include_path<P: AsRef<Path>>(
+//         ctx: &Context,
+//         path: P,
+//     ) -> Option<Self> {
+//         let skip = path
+//             .as_ref()
+//             .to_str()
+//             .unwrap()
+//             .starts_with("http");
+//         if skip {
+//             return None
+//         }
+//         let source_dir = ctx.source_dir()?;
+//         FilePath::resolve_child_path(
+//             &ctx.root_dir,
+//             &source_dir.join(&ctx.root_dir, path.as_ref())?
+//         )
+//     }
+//     pub fn is_child_path(&self, parent_path: &FilePath) -> bool {
+//         self.0.starts_with(parent_path)
+//     }
+//     pub fn join<B: AsRef<Path>, P: AsRef<Path>>(&self, base_path: B, sub_path: P) -> Option<FilePath> {
+//         if sub_path.as_ref().is_relative() {
+//             return FilePath::new(self.0.join(sub_path));
+//         }
+//         FilePath::new(self.0.join(sub_path))
+//     }
+//     pub fn to_str(&self) -> &str {
+//         self.0.to_str().unwrap()
+//     }
+//     pub fn to_path_buffer(self) -> PathBuf {
+//         self.0
+//     }
+//     pub fn load_text_file(&self) -> String {
+//         match self.try_load_text_file() {
+//             Ok(x) => x,
+//             Err(_) => {
+//                 eprintln!("missing file {:?}", self.to_str());
+//                 panic!()
+//             }
+//         }
+//     }
+//     pub fn try_load_text_file(&self) -> Result<String, ()> {
+//         std::fs::read(&self)
+//             .map_err(|_| ())
+//             .and_then(|x| String::from_utf8(x).map_err(|_| ()))
+//     }
+//     pub fn load_binary_file(&self) -> Vec<u8> {
+//         match self.try_load_binary_file() {
+//             Ok(x) => x,
+//             Err(_) => {
+//                 eprintln!("missing file {:?}", self.to_str());
+//                 panic!()
+//             }
+//         }
+//     }
+//     pub fn try_load_binary_file(&self) -> Result<Vec<u8>, ()> {
+//         match std::fs::read(&self) {
+//             Ok(x) => Ok(x),
+//             Err(_) => Err(())
+//         }
+//     }
+//     pub fn parent(&self) -> FilePath {
+//         FilePath::new(self.0.parent().unwrap()).unwrap()
+//     }
+//     /// For source file paths.
+//     /// Ensure `trim` is a PathBuf because it is a path fragment.
+//     pub fn to_output_path(
+//         &self,
+//         ctx: &Context,
+//         trim: &Option<PathBuf>,
+//     ) -> FilePath {
+//         let mut relative_path: PathBuf = {
+//             self.strip_prefix(&ctx.root_dir).unwrap()
+//         };
+//         if let Some(trim) = trim {
+//             relative_path = relative_path
+//                 .strip_prefix(trim)
+//                 .map(|x| x.to_owned())
+//                 .unwrap_or(relative_path);
+//         }
+//         let output_path = FilePath::new(ctx.output_dir.0.join(relative_path)).unwrap();
+//         output_path
+//     }
+//     pub fn exists(&self) -> bool {
+//         self.0.exists()
+//     }
+//     pub fn extension(&self) -> Option<String> {
+//         self.0
+//             .extension()
+//             .map(|x| x.to_str().unwrap().to_owned())
+//     }
+//     pub fn strip_prefix<P: AsRef<Path>>(&self, prefix: P) -> Result<PathBuf, ()> {
+//         self.0.strip_prefix(prefix)
+//             .map(|x| x.to_owned())
+//             .map_err(|_| ())
+//     }
+// }
 
-impl AsRef<Path> for FilePath {
-    fn as_ref(&self) -> &Path {
-        self.0.as_ref()
-    }
-}
-impl AsRef<FilePath> for FilePath {
-    fn as_ref(&self) -> &FilePath {
-        self
-    }
-}
+// impl AsRef<Path> for FilePath {
+//     fn as_ref(&self) -> &Path {
+//         self.0.as_ref()
+//     }
+// }
+// impl AsRef<FilePath> for FilePath {
+//     fn as_ref(&self) -> &FilePath {
+//         self
+//     }
+// }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // CACHE
 ///////////////////////////////////////////////////////////////////////////////
 
-pub type SourcePath = FilePath;
-pub type OutputPath = FilePath;
+// pub type SourcePath = FilePath;
+// pub type OutputPath = FilePath;
 
-pub struct Cache(Arc<Mutex<HashMap<SourcePath, CachedItem>>>);
+// pub struct Cache(Arc<Mutex<HashMap<SourcePath, CachedItem>>>);
 
-lazy_static! {
-    /// This is an example for using doc comment attributes
-    static ref GLOBAL_CACHE: Cache = Cache::new();
-}
+// lazy_static! {
+//     /// This is an example for using doc comment attributes
+//     static ref GLOBAL_CACHE: Cache = Cache::new();
+// }
 
-pub fn cache_file(ctx: &Context, source_path: &FilePath) -> Option<String> {
-    GLOBAL_CACHE.cache_file(ctx, source_path)
-}
+// pub fn cache_file(ctx: &Context, source_path: &FilePath) -> Option<String> {
+//     GLOBAL_CACHE.cache_file(ctx, source_path)
+// }
 
-pub fn cache_inline_text(ctx: &Context, source_path: &FilePath) -> Option<String> {
-    GLOBAL_CACHE.cache_inline_text(ctx, source_path)
-}
+// pub fn cache_inline_text(ctx: &Context, source_path: &FilePath) -> Option<String> {
+//     GLOBAL_CACHE.cache_inline_text(ctx, source_path)
+// }
 
-#[derive(Debug, Clone)]
-pub enum CachedItem {
-    /// For files that are loaded/feteched at runtime.
-    FilePath {output: String},
-    /// For file-contents that are inlined in the HTML tree.
-    InlineText {contents: String},
-}
+// #[derive(Debug, Clone)]
+// pub enum CachedItem {
+//     /// For files that are loaded/feteched at runtime.
+//     FilePath {output: String},
+//     /// For file-contents that are inlined in the HTML tree.
+//     InlineText {contents: String},
+// }
 
 
-impl Cache {
-    fn new() -> Self {
-        Cache(Arc::new(Mutex::new(HashMap::default())))
-    }
-    fn lookup(&self, path: &FilePath) -> Option<CachedItem> {
-        self.0.lock().unwrap().get(path).map(|x| x.clone())
-    }
-    fn insert(&self, source_path: &FilePath, cached_file: CachedItem) {
-        self.0.lock().unwrap().insert(source_path.clone(), cached_file);
-    }
-    fn cache_file(&self, ctx: &Context, source_path: &FilePath) -> Option<String> {
-        if let Some(CachedItem::FilePath{output}) = self.lookup(source_path) {
-            return Some(output)
-        }
-        let out_path = crate::utils::cache_file_dep(ctx, source_path)?;
-        let cached_file = CachedItem::FilePath {
-            output: out_path.clone(),
-        };
-        self.insert(source_path, cached_file);
-        Some(out_path)
-    }
-    fn cache_inline_text(&self, ctx: &Context, source_path: &FilePath) -> Option<String> {
-        if let Some(CachedItem::InlineText{contents}) = self.lookup(source_path) {
-            return Some(contents)
-        }
-        // LOAD FILE
-        if let Ok(contents) = source_path.try_load_text_file() {
-            let cached_file = CachedItem::InlineText {
-                contents: contents.clone(),
-            };
-            self.insert(source_path, cached_file);
-            Some(contents)
-        } else {
-            eprintln!(
-                "[warning] ignoring asset: {} for {}",
-                source_path,
-                ctx.source
-            );
-            None
-        }
-    }
-}
+// impl Cache {
+//     fn new() -> Self {
+//         Cache(Arc::new(Mutex::new(HashMap::default())))
+//     }
+//     fn lookup(&self, path: &FilePath) -> Option<CachedItem> {
+//         self.0.lock().unwrap().get(path).map(|x| x.clone())
+//     }
+//     fn insert(&self, source_path: &FilePath, cached_file: CachedItem) {
+//         self.0.lock().unwrap().insert(source_path.clone(), cached_file);
+//     }
+//     fn cache_file(&self, ctx: &Context, source_path: &FilePath) -> Option<String> {
+//         if let Some(CachedItem::FilePath{output}) = self.lookup(source_path) {
+//             return Some(output)
+//         }
+//         // let out_path = utils::cache_file_dep(ctx, source_path)?;
+//         let out_path: String = unimplemented!();
+//         let cached_file = CachedItem::FilePath {
+//             output: out_path.clone(),
+//         };
+//         self.insert(source_path, cached_file);
+//         Some(out_path)
+//     }
+//     fn cache_inline_text(&self, ctx: &Context, source_path: &FilePath) -> Option<String> {
+//         if let Some(CachedItem::InlineText{contents}) = self.lookup(source_path) {
+//             return Some(contents)
+//         }
+//         // LOAD FILE
+//         if let Ok(contents) = source_path.try_load_text_file() {
+//             let cached_file = CachedItem::InlineText {
+//                 contents: contents.clone(),
+//             };
+//             self.insert(source_path, cached_file);
+//             Some(contents)
+//         } else {
+//             eprintln!(
+//                 "[warning] ignoring asset: {} for {}",
+//                 source_path,
+//                 ctx.source
+//             );
+//             None
+//         }
+//     }
+// }
 
 
 ///////////////////////////////////////////////////////////////////////////////
