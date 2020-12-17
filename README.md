@@ -1,8 +1,8 @@
 # Subscript - Content Publishing using Web Technologies
 
 > NOTE
-> * originally Subscript referred to a frontend UI framework, but that has been abandoned, I’m recycling the old Subscript name for a new project. The old project can be found here [colbyn/subscript-old](https://github.com/colbyn/subscript-old).
-> * **This is a fresh git tree.** There was too much binary data in the original git tree, and for other related reasons, I’ve decided to start with a new git repo for my Subscript project. The old subscript git tree can be found here [github.com/colbyn/subscript](https://github.com/colbyn/subscript).
+> * <sup>[2020/12/16]</sup> **This is a fresh git tree.** There was too much binary data in the original git tree, and for other related reasons, I’ve decided to start with a new git repo for my Subscript project. The old subscript git tree can be found here [github.com/colbyn/subscript](https://github.com/colbyn/subscript).
+> * <sup>[2019]</sup> originally Subscript referred to a frontend UI framework, but that has been abandoned, I’m recycling the old Subscript name for a new project. The old project can be found here [colbyn/subscript-old](https://github.com/colbyn/subscript-old).
 
 ![Preview](assets/desmos-preview.png)
 
