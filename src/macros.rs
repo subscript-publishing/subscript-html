@@ -149,6 +149,28 @@ pub fn subscript_deps(ctx: &Env) -> TagMacro {
     }
 }
 
+pub fn script_tag(env: &Env) -> TagMacro {
+    let env = env.clone();
+    TagMacro {
+        tag: String::from("script"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            let processed_key = "ss-script-processed";
+            if node.has_attr(processed_key) {
+                return ()
+            }
+            node.get_attr("src")
+                .and_then(|src| {
+                    crate::frontend::cache::cache_file(&env, &src)
+                })
+                .and_then(|new_path| {
+                    node.set_attr("src", new_path);
+                    node.set_attr("processed_key", String::from(""));
+                    Some(())
+                });
+        })),
+    }
+}
+
 pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     let mut items = vec![
         include_tag(env),

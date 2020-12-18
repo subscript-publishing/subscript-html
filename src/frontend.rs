@@ -3,7 +3,7 @@ use std::collections::{HashSet, HashMap};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
-
+use std::iter::FromIterator;
 
 ///////////////////////////////////////////////////////////////////////////////
 // CURRENT ENV
@@ -274,24 +274,85 @@ pub fn apply_macros(env: &Env, html: &mut crate::data::Node) {
     }));
 }
 
+
+/// Given e.g
+/// - pages
+/// - pages/sample
+/// - pages/sample
+/// - pages/sample
+/// - pages
+/// The intersection will be 'pages'.
+pub fn intersect(pages: Vec<PathBuf>, output_dir: PathBuf) -> Option<PathBuf> {
+    let mut base_path = Option::<PathBuf>::None;
+    let intersection = pages
+        .clone()
+        .into_iter()
+        .filter_map(|path| {
+            path
+                .strip_prefix(&output_dir)
+                .map(|x| x.to_owned())
+                .unwrap_or(path)
+                .parent()
+                .map(|x| x.to_owned())
+        })
+        .fold(vec![], |prev, parent| -> Vec<String> {
+            let xs = parent
+                .into_iter()
+                .filter_map(|x| x.to_str())
+                .map(|x| x.to_owned())
+                .collect::<Vec<_>>();
+            if prev.len() == 0 {
+                return xs;
+            }
+            let ys = prev.into_iter();
+            xs
+                .into_iter()
+                .zip(ys)
+                .filter_map(|(left, right)| {
+                    if left == right {
+                        return Some(left)
+                    }
+                    None
+                })
+                .collect::<Vec<_>>()
+        });
+    if intersection.len() == 0 {
+        return None
+    }
+    Some(PathBuf::from_iter(intersection))
+}
+
 pub fn build(manifest_path: &str) {
     use crate::{data::*};
     let config = config::Config::init(manifest_path);
-    for path in config.input_files {
+    let intersection = intersect(config.input_files.clone(), config.output_dir.clone());
+    for path in config.input_files.clone() {
+        let output_path = {
+            let base_path = intersection
+                .as_ref()
+                .and_then(|intersection| {
+                    path.strip_prefix(&intersection)
+                        .ok()
+                        .map(|x| x.to_owned())
+                })
+                .unwrap_or_else(|| path.to_owned());
+            config.output_dir.join(base_path)
+        };
         let env = Env {
             current_dir: path.parent().unwrap().to_owned(),
             output_dir: config.output_dir.clone(),
             base_url: None,
         };
-        let html = io::load_text_file(path);
+        let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);
         apply_macros(&env, &mut html);
         let html_str = html.to_html_str(0);
-        println!("{}", html_str);
+        std::fs::create_dir_all(output_path.parent().unwrap());
+        std::fs::write(&output_path, html_str).unwrap();
     }
 }
 
-pub fn run() {
+pub fn main() {
     match cli::Cli::from_args() {
         cli::Cli::Compile{manifest} => {
             build(&manifest)

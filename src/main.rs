@@ -10,6 +10,5 @@ pub mod parser;
 pub mod macros;
 
 fn main() {
-    // cli::run();
-    frontend::run();
+    frontend::main();
 }
