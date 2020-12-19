@@ -17,6 +17,7 @@ pub struct Env {
     pub base_url: Option<String>,
     pub handles: Store<Handles>,
     pub macro_system: MacroSystem,
+    pub input_files: Vec<PathBuf>,
 }
 
 impl Env {
@@ -402,6 +403,7 @@ pub fn build(manifest_path: &str) {
             base_url: None,
             handles: config.handles.clone(),
             macro_system: config.macro_system.clone(),
+            input_files: config.input_files.clone(),
         };
         let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);
