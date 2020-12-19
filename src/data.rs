@@ -12,6 +12,7 @@ use crate::parser;
 use crate::frontend::Env;
 
 pub mod utils;
+pub mod css;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -411,7 +412,7 @@ impl Node {
     ) -> Self {
         let mut element = Element{
             tag: String::from(tag),
-            styling: Styling::default(),
+            styling: css::Styling::default(),
             attrs,
             children: children.to_owned(),
         };
@@ -450,15 +451,13 @@ impl Default for Node {
 pub struct Element {
     pub tag: String,
     #[serde(default)]
-    pub styling: Styling,
+    pub styling: css::Styling,
     #[serde(default)]
     pub attrs: HashMap<String, String>,
     #[serde(default)]
     pub children: Vec<Node>,
 }
 
-#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
-pub struct Styling {}
 
 
 ///////////////////////////////////////////////////////////////////////////////

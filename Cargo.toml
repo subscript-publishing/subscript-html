@@ -19,3 +19,4 @@ hotwatch = "0.4.5"
 rayon = "1.5.0"
 toml = "0.5"
 rhai = {version = "0.19.7", features = ["serde", "unchecked"]}
+harsh = "0.2.1"

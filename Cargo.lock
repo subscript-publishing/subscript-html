@@ -198,6 +198,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
+name = "harsh"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84cb861429b0d399a7620c0086ba47c035ba209fb1aae314380ebd9e95d8d459"
+
+[[package]]
 name = "heck"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -791,6 +797,7 @@ name = "subscript"
 version = "0.1.0"
 dependencies = [
  "glob",
+ "harsh",
  "hotwatch",
  "html5ever",
  "lazy_static",
