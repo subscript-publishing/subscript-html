@@ -84,6 +84,20 @@
       <toc></toc>
       ```
       Regarding the `<toc>` macro, this also works with `<include>`'d content, thanks to how Subscript processes macros in a bottom-up manner<sup>(unlike PostHTML + Parcel, which drove me crazy)</sup>.
+    * This targets the parent node with a unique CSS class name:
+      ```html
+      <style self>
+          self {
+              display: grid;
+              /* ... */
+          }
+          @media (max-width: 900px) {
+              self {
+                  grid-template-columns: 1fr;
+              }
+          }
+      </style>
+      ```
 
 Versatility in Subscript is made possible VIA macros, the syntax is akin to web components, but it's expanded out at **compile time**, instead of at runtime (i.e. a macro).
 
