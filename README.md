@@ -42,6 +42,10 @@
 
 - **Mathematics:**
   ```html
+  <!--
+    NOTE: SEE HTML SYNTAX HIGHLIGHTING EXTENSION FOR VS-CODE
+        (MAKES MIXING LATEX/HTML MORE BEARABLE)
+  -->
   <equation>
       f \triangleleft x &= f(x) \\
       x \triangleright f &= f(x) \\
