@@ -78,7 +78,7 @@
       ```html
       <toc></toc>
       ```
-      Regarding the `<toc>` macro, this also works with `<include>`'d content, thanks to how Subscript processes macros in a bottom-up manner (unlike PostHTML which drove me crazy). 
+      Regarding the `<toc>` macro, this also works with `<include>`'d content, thanks to how Subscript processes macros in a bottom-up manner (unlike PostHTML (with Parcel) which drove me crazy). 
 
 Versatility in Subscript is made possible VIA macros, the syntax is akin to web components, but it's expanded out at **compile time**, instead of at runtime (i.e. a macro).
 
