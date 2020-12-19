@@ -54,7 +54,7 @@
   </equation>
   ```
 
-**Versatility in Subscript is made possible VIA macros (the syntax is akin to web components, but it's expanded out at compile time compared to runtime, i.e. a macro).**
+Versatility in Subscript is made possible VIA macros, the syntax is akin to web components, but it's expanded out at **compile time**, instead of at runtime (i.e. a macro).
 
 
 ## What is Subscript?
