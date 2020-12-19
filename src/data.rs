@@ -407,14 +407,14 @@ impl Node {
     }
     pub fn new_element(
         tag: &str,
-        mut attrs: HashMap<String, String>,
-        children: &[Node],
+        attrs: HashMap<String, String>,
+        children: Vec<Node>,
     ) -> Self {
         let mut element = Element{
             tag: String::from(tag),
             styling: css::Styling::default(),
             attrs,
-            children: children.to_owned(),
+            children: children,
         };
         Node::Element(Box::new(element))
     }

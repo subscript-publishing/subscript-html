@@ -60,7 +60,7 @@ fn convert_impl(handle: &Handle) -> Vec<crate::data::Node> {
             vec![crate::data::Node::new_element(
                 &tag,
                 attrs,
-                &children,
+                children,
             )]
         },
         _ => {

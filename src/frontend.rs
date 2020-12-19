@@ -17,7 +17,7 @@ pub struct Env {
     pub base_url: Option<String>,
     pub handles: Store<Handles>,
     pub macro_system: MacroSystem,
-    pub input_files: Vec<PathBuf>,
+    pub io_paths: Vec<IoPath>,
 }
 
 impl Env {
@@ -28,6 +28,13 @@ impl Env {
         }
         io::try_load_text_file(path)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct IoPath {
+    pub input_file: PathBuf,
+    pub output_file: PathBuf,
+    pub output_dir: PathBuf,
 }
 
 
@@ -385,25 +392,36 @@ pub fn build(manifest_path: &str) {
     use crate::{data::*};
     let config = config::Config::init(manifest_path);
     let intersection = intersect(config.input_files.clone(), config.output_dir.clone());
-    for path in config.input_files.clone() {
-        let output_path = {
-            let base_path = intersection
-                .as_ref()
-                .and_then(|intersection| {
-                    path.strip_prefix(&intersection)
-                        .ok()
-                        .map(|x| x.to_owned())
-                })
-                .unwrap_or_else(|| path.to_owned());
-            config.output_dir.join(base_path)
-        };
+    let io_paths = config.input_files
+        .clone()
+        .into_iter()
+        .map(|path| {
+            let output_path = {
+                let base_path = intersection
+                    .as_ref()
+                    .and_then(|intersection| {
+                        path.strip_prefix(&intersection)
+                            .ok()
+                            .map(|x| x.to_owned())
+                    })
+                    .unwrap_or_else(|| path.to_owned());
+                config.output_dir.join(base_path)
+            };
+            IoPath {
+                input_file: path,
+                output_file: output_path,
+                output_dir: config.output_dir.clone(),
+            }
+        })
+        .collect::<Vec<_>>();
+    for IoPath{input_file: path, output_file: output_path, ..} in io_paths.clone() {
         let env = Env {
             current_dir: path.parent().unwrap().to_owned(),
             output_dir: config.output_dir.clone(),
             base_url: None,
             handles: config.handles.clone(),
             macro_system: config.macro_system.clone(),
-            input_files: config.input_files.clone(),
+            io_paths: io_paths.clone(),
         };
         let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);

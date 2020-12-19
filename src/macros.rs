@@ -90,7 +90,7 @@ pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
         Node::new_element(
             "div",
             attrs,
-            &[Node::new_text(&format!("$${}$$", value))]
+            vec![Node::new_text(&format!("$${}$$", value))]
         )
     }
     fn inline_latex(node: &Node, value: String) -> Node {
@@ -99,7 +99,7 @@ pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
         Node::new_element(
             "span",
             attrs,
-            &[Node::new_text(&format!("\\({}\\)", value))]
+            vec![Node::new_text(&format!("\\({}\\)", value))]
         )
     }
     vec![
@@ -171,10 +171,86 @@ pub fn script_tag(env: &Env) -> TagMacro {
     }
 }
 
+pub fn page_nav(ctx: &Env) -> TagMacro {
+    let ctx = ctx.clone();
+    #[derive(Debug, Clone)]
+    struct PageTree {
+        route: String,
+        title: String,
+        sub_pages: Vec<PageTree>,
+    }
+    fn build_page_tree(node: &Node) -> Option<PageTree> {
+        let route = node.get_attr("route")?;
+        let title = node.get_attr("title")?;
+        let sub_pages = node
+            .get_children()
+            .into_iter()
+            .filter_map(|child| build_page_tree(&child))
+            .collect::<Vec<_>>();
+        Some(PageTree {
+            route,
+            title,
+            sub_pages,
+        })
+    }
+    fn page_tree_to_html(page: PageTree) -> Node {
+        let children = page.sub_pages
+            .clone()
+            .into_iter()
+            .map(|x| page_tree_to_html(x))
+            .collect::<Vec<_>>();
+        let empty_children = children.is_empty();
+        let child_wrapper = Node::new_element(
+            "ul",
+            HashMap::default(),
+            children,
+        );
+        let link = Node::new_element(
+            "a",
+            HashMap::from_iter(vec![
+                (String::from("href"), page.route)
+            ]),
+            vec![Node::new_text(&page.title)]
+        );
+        if empty_children {
+            Node::new_element(
+                "li",
+                HashMap::default(),
+                vec![link],
+            )
+        } else {
+            Node::new_element(
+                "li",
+                HashMap::default(),
+                vec![link, child_wrapper],
+            )
+        }
+    }
+    TagMacro {
+        tag: String::from("page-nav"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            let pages = node
+                .get_children()
+                .into_iter()
+                .filter_map(|x| build_page_tree(&x))
+                .map(|x| page_tree_to_html(x))
+                .collect::<Vec<_>>();
+            *node = Node::new_element(
+                "ul",
+                HashMap::from_iter(vec![
+                    (String::from("macro"), String::from("page-nav"))
+                ]),
+                pages,
+            );
+        })),
+    }
+}
+
 pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     let mut items = vec![
         include_tag(env),
         subscript_deps(env),
+        page_nav(env),
     ];
     items.append(&mut latex_suit(env));
     items

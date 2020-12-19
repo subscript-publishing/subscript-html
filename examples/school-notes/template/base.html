@@ -4,6 +4,23 @@
         <title>Note</title>
     </head>
     <body>
-        <content></content>
+        <header id="site-header">
+            <page-nav>
+                <page route="/index.html" title="Homepage"></page>
+                <page route="/sample.html" title="Sample">
+                    <page route="/sample/chapter1.html" title="Chapter 1"></page>
+                    <page route="/sample/chapter2.html" title="Chapter 2"></page>
+                    <page route="/sample/chapter3.html" title="Chapter 3"></page>
+                </page>
+                <page route="/other.html" title="Other">
+                    <page route="/other/chapter1.html" title="Red"></page>
+                    <page route="/other/chapter2.html" title="Green"></page>
+                    <page route="/other/chapter3.html" title="Blue"></page>
+                </page>
+            </page-nav>
+        </header>
+        <main>
+            <content></content>
+        </main>
     </body>
 </html>
