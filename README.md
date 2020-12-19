@@ -60,7 +60,7 @@
   </equation>
   ```
 
-- Lots of conveniences:
+- Lots of simple conveniences:
     * Layout (originally called `<gallery>`):
       ```html
       <layout columns="3">
