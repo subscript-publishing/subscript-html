@@ -55,7 +55,7 @@
   </equation>
   ```
 
-- Lets of conveniences:
+- Lots of conveniences:
     * Layout (originally called `<gallery>`):
       ```html
       <layout columns="3">
