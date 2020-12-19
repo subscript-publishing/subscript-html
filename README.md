@@ -22,7 +22,12 @@
 - **Include Files:**
   ```html
   <include src="../template/base.html">
-      <h1>Hello World</h1>
+      <h1>My Book</h1>
+      
+      <include src="../content/chapter1.html"></include>
+      <include src="../content/chapter2.html"></include>
+      <include src="../content/chapter3.html"></include>
+
       <!--
         NOTE: SEE HTML SYNTAX HIGHLIGHTING EXTENSION FOR VS-CODE
            (MAKES MIXING LATEX/HTML MORE BEARABLE)
