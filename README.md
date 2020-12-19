@@ -74,7 +74,7 @@
         <p>Sesame snaps lollipop marshmallow marzipan</p>
       </list>
       ```
-    * Generated a "Table Of Contents" at the given location:
+    * Generate a "Table Of Contents" at the given location:
       ```html
       <toc></toc>
       ```
