@@ -7,7 +7,12 @@ repository = "https://github.com/subscript-publishing/subscript"
 homepage = "https://github.com/subscript-publishing/subscript"
 license = "MPL-2.0"
 description = "Content Publishing using Web Technologies"
-keywords = ['site', 'blog', 'static', 'generator', 'compiler', 'html', 'bundler']
+keywords = ['site', 'static', 'generator', 'html', 'bundler']
+categories = [
+    'template-engine',
+    'mathematics',
+    'web-programming',
+]
 
 [dependencies]
 html5ever = "0.25.1"
