@@ -256,6 +256,14 @@ impl Node {
     //         self.apply(m);
     //     }
     // }
+    pub fn set_tag(&mut self, new_tag: &str) {
+        match self {
+            Node::Element(element) => {
+                element.tag = String::from(new_tag);
+            },
+            _ => ()
+        }
+    }
     pub fn tag(&self) -> Option<String> {
         match self {
             Node::Element(element) => Some(element.tag.clone()),

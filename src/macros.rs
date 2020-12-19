@@ -171,7 +171,7 @@ pub fn script_tag(env: &Env) -> TagMacro {
     }
 }
 
-pub fn page_nav(ctx: &Env) -> TagMacro {
+pub fn page_nav_tag(ctx: &Env) -> TagMacro {
     let ctx = ctx.clone();
     #[derive(Debug, Clone)]
     struct PageTree {
@@ -246,11 +246,42 @@ pub fn page_nav(ctx: &Env) -> TagMacro {
     }
 }
 
+pub fn layout_tag(ctx: &Env) -> TagMacro {
+    let ctx = ctx.clone();
+    TagMacro {
+        tag: String::from("layout"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            node.set_tag("div");
+            node.set_attr("macro", String::from("layout"));
+        })),
+    }
+}
+
+pub fn asset_glob_tag(ctx: &Env) -> TagMacro {
+    let ctx = ctx.clone();
+    TagMacro {
+        tag: String::from("asset-glob"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            node.get_attr("src")
+                .map(|src| crate::frontend::io::expand_globs(vec![src]))
+                .unwrap_or(Vec::new())
+                .into_iter()
+                .map(|x| {
+                    
+                })
+                .collect::<Vec<_>>();
+        })),
+    }
+}
+
 pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     let mut items = vec![
         include_tag(env),
         subscript_deps(env),
-        page_nav(env),
+        page_nav_tag(env),
+        layout_tag(env),
+        asset_glob_tag(&env),
+        img_tag(&env),
     ];
     items.append(&mut latex_suit(env));
     items

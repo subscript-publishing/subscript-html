@@ -77,6 +77,7 @@ pub fn cache_file_dep(
         .extension()
         .and_then(|x| x.to_str().map(|x| x.to_owned()))
         .map(|x| format!(".{}", x))?;
+    let ref input_path = ctx.current_dir.join(input_path);
     if let Ok(binary) = crate::frontend::io::try_load_binary_file(input_path) {
         let uid = lookup_hash(&binary);
         let file_name = format!("{}{}", uid, src_ext);

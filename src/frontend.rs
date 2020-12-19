@@ -236,15 +236,21 @@ pub mod cache {
     use std::borrow::Cow;
     use std::collections::HashSet;
     use std::path::{PathBuf, Path};
-    pub fn cache_file<P: AsRef<Path>>(env: &Env, source_path: &P) -> Option<String> {
-        GLOBAL_CACHE.cache_file(env, &source_path.as_ref().to_owned())
+    pub fn cache_file(env: &Env, source_path: &str) -> Option<String> {
+        GLOBAL_CACHE.cache_file(env, source_path)
     }
-    pub fn cache_inline_text<P: AsRef<Path>>(env: &Env, source_path: &P) -> Option<String> {
-        GLOBAL_CACHE.cache_inline_text(env, &source_path.as_ref().to_owned())
+    pub fn cache_file_glob(env: &Env, source: &str) -> Option<String> {
+        // let paths = crate::frontend::io::expand_globs(vec![
+        //     source.to_owned()
+        // ]);
+        unimplemented!()
+    }
+    pub fn cache_inline_text(env: &Env, source_path: &str) -> Option<String> {
+        GLOBAL_CACHE.cache_inline_text(env, source_path)
     }
     type SourcePath = PathBuf;
     type OutputPath = PathBuf;
-    struct Cache(Arc<Mutex<HashMap<SourcePath, CachedItem>>>);
+    struct Cache(Arc<Mutex<HashMap<String, CachedItem>>>);
     lazy_static! {
         /// This is an example for using doc comment attributes
         static ref GLOBAL_CACHE: Cache = Cache::new();
@@ -255,29 +261,35 @@ pub mod cache {
         FilePath {output: String},
         /// For file-contents that are inlined in the HTML tree.
         InlineText {contents: String},
+        FileGlob {
+            output: Vec<String>,
+        }
     }
     impl Cache {
         fn new() -> Self {
             Cache(Arc::new(Mutex::new(HashMap::default())))
         }
-        fn lookup(&self, path: &PathBuf) -> Option<CachedItem> {
+        fn lookup(&self, path: &str) -> Option<CachedItem> {
             self.0.lock().unwrap().get(path).map(|x| x.clone())
         }
-        fn insert(&self, source_path: &PathBuf, cached_file: CachedItem) {
-            self.0.lock().unwrap().insert(source_path.clone(), cached_file);
+        fn insert(&self, source_path: &str, cached_file: CachedItem) {
+            self.0.lock().unwrap().insert(
+                source_path.to_owned(),
+                cached_file,
+            );
         }
-        fn cache_file(&self, env: &Env, source_path: &PathBuf) -> Option<String> {
+        fn cache_file(&self, env: &Env, source_path: &str) -> Option<String> {
             if let Some(CachedItem::FilePath{output}) = self.lookup(source_path) {
                 return Some(output)
             }
-            let out_path = utils::cache_file_dep(env, source_path)?;
+            let out_path = utils::cache_file_dep(env, &PathBuf::from(source_path))?;
             let cached_file = CachedItem::FilePath {
                 output: out_path.clone(),
             };
             self.insert(source_path, cached_file);
             Some(out_path)
         }
-        fn cache_inline_text(&self, _: &Env, source_path: &PathBuf) -> Option<String> {
+        fn cache_inline_text(&self, _: &Env, source_path: &str) -> Option<String> {
             if let Some(CachedItem::InlineText{contents}) = self.lookup(source_path) {
                 return Some(contents)
             }
