@@ -4,7 +4,38 @@
 > * <sup>[2020/12/16]</sup> **This is a fresh git tree.** There was too much binary data in the original git tree, and for other related reasons, I’ve decided to start with a new git repo for my Subscript project. The old subscript git tree can be found here [github.com/colbyn/subscript](https://github.com/colbyn/subscript).
 > * <sup>[2019]</sup> originally Subscript referred to a frontend UI framework, but that has been abandoned, I’m recycling the old Subscript name for a new project. The old project can be found here [colbyn/subscript-old](https://github.com/colbyn/subscript-old).
 
+## Preview
+
 ![Preview](assets/desmos-preview.png)
+
+### General Features
+
+- [x] Rust Macros
+- [x] Macros VIA embedded scripting language ([Example](examples/school-notes/plugins/desmos1.rhai)).
+- [ ] Paged Media Support
+- [ ] PDF Rendering
+
+### Supported Content (Using Subscript's Macro System | Not Comprehensive)
+
+- Graphing
+  ```html
+  <desmos1>
+      <expr>y = x^2</expr>
+  </desmos1>
+  ```
+
+- Mathematics
+  ```html
+  <equation>
+      f \triangleleft x &= f(x) \\
+      x \triangleright f &= f(x) \\
+      |x| &= \sqrt{x^2} \neq x \\
+      |x|^2 &= x^2
+  </equation>
+  ```
+
+<small>Versatility in Subscript is made possible VIA macros (the syntax is akin to web components, but it's expanded out at compile time compared to runtime, i.e. a macro).</small>
+
 
 ## What is Subscript?
 
@@ -26,61 +57,12 @@
       
       Or, do you need to embed musical notation? Create a macro that embeds [VexFlow](https://www.vexflow.com/). 
 
-      Furthermore Subscript macros are more powerful than LaTeX, because Subscript macros can access the entire html tree, which is useful for e.g. the `<toc>` macro that includes a generated table of contents at the given location. 
-
       <sup>[†]:</sup> Regarding Sile and it's innovative layout system, since Subscript is based on web technologies, it can offer responsive grid layouts for different PDF resolutions.
-      
 
 
 ## High Level TODO:
 
 - [CSS Paged Media](https://www.w3.org/TR/css-page-3/): support traditional print use cases, or just rendering to a PDF. This is what I am currently planning on using for rendering to e.g. PDFs: [PagedJS](https://www.pagedjs.org)
-
-## Example
-
-> FYI, you can compile the following with either
-> ```bash
-> cargo run -- compile --root=example --input example/pages/**/*.html --output=example/output --trim pages
-> ```
-> or,
-> ```bash
-> subscript compile --root=example --input example/pages/**/*.html --output=example/output --trim pages
-> ```
-
-The following file from `./example/pages/index.html`:
-
-```html
-<include src="../template/base.html">
-    <h1>Hello World</h1>
-    <items>
-        <p>First Paragraph</p>
-        <p>Second Paragraph</p>
-        <li>Third Item</li>
-    </items>
-</include>
-```
-
-Transforms to:
-
-```html
-<html>
-  <head>
-    <title>Note</title>
-  </head>
-  <body>
-    <h1>Hello World</h1>
-    <ul>
-      <li>
-        <p>First Paragraph</p>
-      </li>
-      <li>
-        <p>Second Paragraph</p>
-      </li>
-      <li>Third Item</li>
-    </ul>
-  </body>
-</html>
-```
 
 ## Math Preview
 
@@ -91,16 +73,4 @@ Comes with a syntax highlighting extension for VS Code.
 ![VS-Code Preview](assets/preview-vscode-plugin.png)
 
 It injects the LaTeX grammar from [latex-workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) into the `<tex>` and `<texblock>` html tags. 
-
-## Macros
-
-> For autocomplete in VS-Code, for now, use the custom data definitions in [editors/vscode-html-macros](editors/vscode-html-macros/html-macros.json).
-
-Versatility in Subscript is made possible VIA macros (the syntax is akin to web components, but it's expanded out at compile time compared to runtime, i.e. a macro).
-
-For example, to display math formulas, you may use the `<tex>` macro, to plot `y = x^2`, you may use e.g. the `<desmos>` macro, and etc. Furthermore, say you wanted to publish content with music notation, you could create a macro that provides a high level interface to e.g. [VexFlow](https://www.vexflow.com/). 
-
-For now, all supported macros are implemented in the core compiler.
-
-Long term wise, I'd like to move away from the current monolithic architecture, and support extensibility in a more general manner VIA some scripting language. For this, I plan on embedding [Deno](https://github.com/denoland/deno), which will provide a multitude of benefits that e.g. NodeJS can't offer (Deno is from the creator of NodeJS).
 
