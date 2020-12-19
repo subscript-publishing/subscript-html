@@ -84,7 +84,7 @@
       <toc></toc>
       ```
       Regarding the `<toc>` macro, this also works with `<include>`'d content, thanks to how Subscript processes macros in a bottom-up manner<sup>(unlike PostHTML + Parcel, which drove me crazy)</sup>.
-    * This targets the parent node with a unique CSS class name:
+    * Ad-hoc styling | This targets the parent node with a unique CSS class name:
       ```html
       <style self>
           self {
