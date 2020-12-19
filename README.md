@@ -100,7 +100,9 @@
       ```
     * Images from a file glob [TODO]:
       ```html
-      <image-gallery src="../static/images/chapter1/*.jpg" columns="2"></image-gallery>
+      <asset-glob src="../static/images/chapter1/*.jpg">
+          <layout columns="2"><content></content></layout>
+      </asset-glob>
       ```
       This pattern was very common with my [old school notes](https://colbyn.github.io/subscript/calc1/chapter6.html), where I could include [screenshots](https://colbyn.github.io/subscript/calc1/chapter6.html#2681476879558479754) of all the essential definitions from a given chapter.
 
