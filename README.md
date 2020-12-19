@@ -12,6 +12,7 @@
 
 - [x] Rust Macros
 - [x] Macros VIA a *simple* embedded scripting language that supports WebAssembly ([Example](examples/school-notes/plugins/desmos1.rhai))
+- [ ] Unicode Prettification (E.g. convert `"Lorem"` to `“lorem”`.)
 - [ ] Macros VIA *some more mainstream* embedded scripting language (ideally one that is sandboxed such as Deno)
 - [ ] Paged Media Support
 - [ ] PDF Rendering (dependent on `Paged Media Support` for native page handling)
@@ -53,6 +54,30 @@
       |x|^2 &= x^2
   </equation>
   ```
+
+- Lets of conveniences:
+    * Layout (originally called `<gallery>`):
+      ```html
+      <layout columns="3">
+        <equation>\delta \sin(x) &= \cos(x)</equation>
+        <equation>\delta \cos(x) &= -\sin(x)</equation>
+        <equation>\delta \tan(x) &= \sec^2(x)</equation>
+        <equation>\delta \csc(x) &= -\cot(x)\csc(x)</equation>
+        <equation>\delta \sec(x) &= \tan(x)\sec(x)</equation>
+        <equation>\delta \cot(x) &= -\csc^2(x)</equation>
+      </layput>
+      ```
+    * This helps reduce nesting:
+      ```html
+      <list>
+        <p>Lemon drops sweet roll cupcake biscuit cookie. Ice cream pie apple pie fruitcake dessert sweet roll chocolate bar.</p>
+        <p>Sesame snaps lollipop marshmallow marzipan</p>
+      </list>
+      ```
+    * Generated a "Table Of Contents" at the given location:
+      ```html
+      <toc></toc>
+      ```
 
 Versatility in Subscript is made possible VIA macros, the syntax is akin to web components, but it's expanded out at **compile time**, instead of at runtime (i.e. a macro).
 
