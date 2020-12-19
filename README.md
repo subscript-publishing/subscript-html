@@ -65,7 +65,7 @@
         <equation>\delta \csc(x) &= -\cot(x)\csc(x)</equation>
         <equation>\delta \sec(x) &= \tan(x)\sec(x)</equation>
         <equation>\delta \cot(x) &= -\csc^2(x)</equation>
-      </layput>
+      </layout>
       ```
     * This helps reduce nesting:
       ```html
