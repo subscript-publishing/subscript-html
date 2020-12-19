@@ -17,14 +17,24 @@
 
 ### Supported Content (Using Subscript's Macro System | Not Comprehensive)
 
-- Graphing
+- **Include Files:**
+  ```html
+  <include src="../template/base.html">
+      <h1>Hello World</h1>
+      <desmos1>
+          <expr>y = x^2</expr>
+      </desmos1>
+  </include>
+  ```
+
+- **Graphing:**
   ```html
   <desmos1>
       <expr>y = x^2</expr>
   </desmos1>
   ```
 
-- Mathematics
+- **Mathematics:**
   ```html
   <equation>
       f \triangleleft x &= f(x) \\
