@@ -1,3 +1,5 @@
+/// RHAI HOMEPAGE: https://schungx.github.io/rhai/
+///
 /// HTML in RHAI uses the JSON data model (VIA serde in Rust).
 /// For example, the following HTML snippet:
 /// ```html
