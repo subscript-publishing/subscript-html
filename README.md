@@ -12,7 +12,7 @@
 
 - [x] Rust Macros
 - [x] Macros VIA a *simple* embedded scripting language that supports WebAssembly ([Example](examples/school-notes/plugins/desmos.rhai))
-- [ ] Unicode Prettification (E.g. convert `"Lorem"` to `“lorem”`.)
+- [ ] Unicode Prettification (E.g. convert `"Lorem"` to `“lorem”` and `...` to `…`)
 - [ ] Macros VIA *some more mainstream* embedded scripting language (ideally one that is sandboxed such as Deno)
 - [ ] Paged Media Support
 - [ ] PDF Rendering (dependent on `Paged Media Support` for native page handling)
