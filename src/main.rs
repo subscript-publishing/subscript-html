@@ -8,6 +8,7 @@ pub mod frontend;
 pub mod data;
 pub mod parser;
 pub mod macros;
+pub mod embed;
 
 fn main() {
     frontend::main();

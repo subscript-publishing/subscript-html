@@ -4,17 +4,19 @@ use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
 use std::iter::FromIterator;
+use crate::data::{Store};
 
 ///////////////////////////////////////////////////////////////////////////////
 // CURRENT ENV
 ///////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Env {
-    // pub root_dir: PathBuf,
     pub current_dir: PathBuf,
     pub output_dir: PathBuf,
     pub base_url: Option<String>,
+    pub handles: Store<Handles>,
+    pub macro_system: MacroSystem,
 }
 
 impl Env {
@@ -27,12 +29,42 @@ impl Env {
     }
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+// MISC
+///////////////////////////////////////////////////////////////////////////////
+
+pub struct Handles {
+    rhai_subsystem: crate::embed::rhai::RhaiSubSystem,
+}
+
+#[derive(Clone)]
+pub struct MacroSystem {
+    apply_macros: fn(env: &Env, html: &mut crate::data::Node),
+}
+
+impl std::fmt::Debug for MacroSystem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MacroSystem(\"...\")").finish()
+    }
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // FRONTEND IO HELPERS
 ///////////////////////////////////////////////////////////////////////////////
 
 pub mod io {
     use super::*;
+
+    pub fn expand_globs(globs: Vec<String>) -> Vec<PathBuf> {
+        globs
+            .into_iter()
+            .filter_map(|x| glob::glob(&x).ok())
+            .flat_map(|x| x.into_iter())
+            .filter_map(Result::ok)
+            .collect::<Vec<_>>()
+    }
     
     pub fn load_text_file<P: AsRef<Path>>(path: P) -> String {
         match try_load_text_file(&path) {
@@ -80,6 +112,7 @@ pub(crate) mod manifest_format {
         pub(crate) pages: Vec<String>,
         pub(crate) root: PathBuf,
         pub(crate) output_dir: PathBuf,
+        pub(crate) plugins: Option<Vec<String>>,
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -119,11 +152,12 @@ pub(crate) mod manifest_format {
 /// Normalized version of the raw manifest format.
 pub mod config {
     use super::*;
-    #[derive(Debug, Clone)]
     pub struct Config {
         pub input_files: Vec<PathBuf>,
         pub root: PathBuf,
         pub output_dir: PathBuf,
+        pub handles: Store<Handles>,
+        pub macro_system: MacroSystem,
     }
     impl Config {
         /// Only call this once.
@@ -135,24 +169,28 @@ pub mod config {
             let manifest = manifest_format::load(&manifest_path);
             let normalized_root_dir = manifest_root_dir.join(&manifest.project.root);
             std::env::set_current_dir(&normalized_root_dir).unwrap();
-            let input_files = manifest.project.pages
-                .clone()
-                .into_iter()
-                .flat_map(|x: String| -> Vec<PathBuf> {
-                    glob::glob(&x)
-                        .unwrap()
-                        .filter_map(Result::ok)
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
+            let input_files = io::expand_globs(manifest.project.pages.clone());
             let output_dir = manifest.project.output_dir.clone();
             if !output_dir.exists() {
                 std::fs::create_dir_all(&output_dir);
             }
+            let handles = {
+                let rhai_subsystem = crate::embed::rhai::RhaiSubSystem::new(
+                    manifest.project.plugins.unwrap_or(Vec::new())
+                );
+                Handles {
+                    rhai_subsystem: rhai_subsystem,
+                }
+            };
+            let macro_system = MacroSystem {
+                apply_macros: apply_macros,
+            };
             Config {
                 input_files,
                 root: manifest.project.root.clone(),
                 output_dir,
+                handles: Store::new(handles),
+                macro_system,
             }
         }
     }
@@ -175,6 +213,7 @@ pub mod cli {
         },
     }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // CACHE
@@ -259,18 +298,37 @@ pub mod cache {
 pub fn apply_macros(env: &Env, html: &mut crate::data::Node) {
     use crate::data::Node;
     let env = env.clone();
-    html.eval(Rc::new(move |node: &mut Node| {
-        node.tag()
-            .map({
-                let env = env.clone();
-                move |node_tag| {
-                    for tag_macro in crate::macros::tag_macros(&env) {
-                        if tag_macro.tag == node_tag {
-                            (tag_macro.callback.0)(node);
+    let rhai_macros = env.handles.access(|handles: &Handles| {
+        handles.rhai_subsystem.get_macro_tag_names()
+    });
+    let rust_macros = crate::macros::tag_macros(&env)
+        .into_iter()
+        .map(|x| x.tag)
+        .collect::<HashSet<_>>();
+    html.eval(Rc::new({
+        let env = env.clone();
+        let rhai_macros = rhai_macros.clone();
+        move |node: &mut Node| {
+            node.tag()
+                .map({
+                    |node_tag| {
+                        if rhai_macros.clone().contains(&node_tag) {
+                            env.handles.access_mut({
+                                |handles: &mut Handles| {
+                                    handles.rhai_subsystem.consider_node(node)
+                                }
+                            });
+                        }
+                        if rust_macros.contains(&node_tag) {
+                            for tag_macro in crate::macros::tag_macros(&env) {
+                                if tag_macro.tag == node_tag {
+                                    (tag_macro.callback.0)(node);
+                                }
+                            }
                         }
                     }
-                }
-            });
+                });
+        }
     }));
 }
 
@@ -342,6 +400,8 @@ pub fn build(manifest_path: &str) {
             current_dir: path.parent().unwrap().to_owned(),
             output_dir: config.output_dir.clone(),
             base_url: None,
+            handles: config.handles.clone(),
+            macro_system: config.macro_system.clone(),
         };
         let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);
