@@ -11,9 +11,10 @@
 ### General Features
 
 - [x] Rust Macros
-- [x] Macros VIA embedded scripting language ([Example](examples/school-notes/plugins/desmos1.rhai)).
+- [x] Macros VIA a *simple* embedded scripting language that supports WebAssembly ([Example](examples/school-notes/plugins/desmos1.rhai))
+- [ ] Macros VIA *some more mainstream* embedded scripting language (ideally one that is sandboxed such as Deno)
 - [ ] Paged Media Support
-- [ ] PDF Rendering
+- [ ] PDF Rendering (dependent on `Paged Media Support` for native page handling)
 
 ### Supported Content (Using Subscript's Macro System | Not Comprehensive)
 
@@ -21,6 +22,11 @@
   ```html
   <include src="../template/base.html">
       <h1>Hello World</h1>
+      <!--
+        NOTE: SEE SYNTAX HIGHLIGHTING EXTENSION FOR VS-CODE
+           (MAKES MIXING LATEX/HTML MORE BEARABLE)
+        -->
+      <h2>Graph of <tex>y = x^2</tex></h2>
       <desmos1>
           <expr>y = x^2</expr>
       </desmos1>
