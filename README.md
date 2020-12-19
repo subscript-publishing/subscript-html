@@ -39,7 +39,7 @@
   </include>
   ```
 
-- **Graphing** (still being moved over from the [original implementation of the Desmos macro](https://github.com/colbyn/subscript/blob/master/src/macros.rs#L258), unless you use e.g. [this plugin](https://github.com/subscript-publishing/subscript/blob/master/examples/school-notes/plugins/desmos1.rhai) (not at as customizable).):
+- **Graphing** (still being moved over from the [original implementation of the Desmos macro](https://github.com/colbyn/subscript/blob/master/src/macros.rs#L258), unless you use e.g. [this plugin](https://github.com/subscript-publishing/subscript/blob/master/examples/school-notes/plugins/desmos1.rhai) (not as customizable).):
   ```html
   <desmos>
       <expr>y = x^2</expr>
