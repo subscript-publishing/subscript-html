@@ -23,7 +23,7 @@
   <include src="../template/base.html">
       <h1>Hello World</h1>
       <!--
-        NOTE: SEE SYNTAX HIGHLIGHTING EXTENSION FOR VS-CODE
+        NOTE: SEE HTML SYNTAX HIGHLIGHTING EXTENSION FOR VS-CODE
            (MAKES MIXING LATEX/HTML MORE BEARABLE)
         -->
       <h2>Graph of <tex>y = x^2</tex></h2>
