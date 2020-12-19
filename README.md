@@ -100,7 +100,7 @@
       ```
     * Images from a file glob [TODO]:
       ```html
-      <asset-glob src="../static/images/chapter1/*.jpg">
+      <asset-glob src="../static/images/chapter1/*.png">
           <layout columns="2"><content></content></layout>
       </asset-glob>
       ```
