@@ -2,6 +2,7 @@
 root = "."
 pages = ["pages/**/*.html"]
 output_dir = "output"
+plugins = ["plugins/**/*.rhai"]
 
 [on.startup]
 open_browser = true
