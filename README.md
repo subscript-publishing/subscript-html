@@ -123,5 +123,5 @@ Comes with a syntax highlighting extension for VS Code.
 
 ![VS-Code Preview](assets/preview-vscode-plugin.png)
 
-It injects the LaTeX grammar from [latex-workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) into the `<tex>` and `<texblock>` html tags. 
+It injects the LaTeX grammar from [latex-workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) into the `<tex>`, `<texblock>` and the `<equation>` html tags. 
 
