@@ -11,7 +11,7 @@
 ### General Features
 
 - [x] Rust Macros
-- [x] Macros VIA a *simple* embedded scripting language that supports WebAssembly ([Example](examples/school-notes/plugins/desmos.rhai))
+- [x] Macros VIA a *simple* embedded scripting language that supports WebAssembly ([Example](./examples/school-notes/plugins/desmos.rhai))
 - [ ] Unicode Prettification (E.g. convert `"Lorem"` to `“lorem”` and `...` to `…`)
 - [ ] Macros VIA *some more mainstream* embedded scripting language (ideally one that is sandboxed such as Deno)
 - [ ] Paged Media Support
@@ -39,7 +39,7 @@
   </include>
   ```
 
-- **Graphing** (still being moved over from the [original implementation](https://github.com/colbyn/subscript/blob/master/src/macros.rs#L258), unless you use e.g. [this plugin](examples/school-notes/plugins/desmos.rhai).):
+- **Graphing** (still being moved over from the [original implementation](https://github.com/colbyn/subscript/blob/master/src/macros.rs#L258), unless you use e.g. [this plugin](./examples/school-notes/plugins/desmos.rhai).):
   ```html
   <desmos>
       <expr>y = x^2</expr>
