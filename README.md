@@ -60,7 +60,7 @@
   </equation>
   ```
 
-- Lots of simple conveniences:
+- Lots of simple conveniences (a lot is still being moved over from the [original implementation](https://github.com/colbyn/subscript)):
     * Layout (originally called `<gallery>`):
       ```html
       <layout columns="3">
