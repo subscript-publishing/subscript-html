@@ -14,7 +14,7 @@
 
 
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-    --app='https://localhost:3000' \
+    --app='http://127.0.0.1:3000/' \
     –-disable-background-mode \
     --disable-component-extensions-with-background-pages \
     --disable-extensions \

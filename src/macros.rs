@@ -61,9 +61,13 @@ fn include_tag(env: &Env) -> TagMacro {
         node
             .get_attr("src")
             .and_then(|src| env.try_load_text_file(src).ok())
-            .and_then(|text| Some(Node::parse_string(text)))
-            .map(|mut template| {
-                crate::frontend::apply_macros(&env, &mut template);
+            .map(|(path, text)| {
+                (path, Node::parse_string(text))
+            })
+            .map(|(template_path, mut template)| {
+                let mut template_env = env.clone();
+                template_env.current_dir = template_path.parent().unwrap().to_owned();
+                crate::frontend::apply_macros(&template_env, &mut template);
                 let mut embedded = node.get_children();
                 template.eval(Rc::new(move |child: &mut Node| {
                     if child.is_tag("content") {
@@ -294,6 +298,32 @@ pub fn layout_tag(ctx: &Env) -> TagMacro {
         callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
             node.set_tag("div");
             node.set_attr("macro", String::from("layout"));
+            // Allow for `cols` or `columns`; normalize to `columns`.
+            node.get_attr("cols")
+                .map(|val| {
+                    node.set_attr("columns", val)
+                });
+        })),
+    }
+}
+
+pub fn link_tag(env: &Env) -> TagMacro {
+    let env = env.clone();
+    TagMacro {
+        tag: String::from("link"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            let processed_attr = "ss.link.processed";
+            if node.has_attr(processed_attr) {
+                return ();
+            }
+            node.get_attr("href")
+                .and_then(|href| crate::frontend::cache::cache_file(&env, &href))
+                .map(|out_path| {
+                    node.set_attr("href", out_path);
+                })
+                .map(|_| {
+                    node.set_attr(processed_attr, String::new());
+                });
         })),
     }
 }
@@ -319,13 +349,13 @@ pub fn asset_glob_tag(env: &Env) -> TagMacro {
                     )
                 })
                 .collect::<Vec<_>>();
-            node.eval(Rc::new(move |child: &mut Node| {
+            let mut contents = Node::Fragment(node.get_children());
+            contents.eval(Rc::new(move |child: &mut Node| {
                 if child.is_tag("content") {
                     *child = Node::Fragment(asset_nodes.clone());
                 }
             }));
-            node.set_tag("div");
-            node.set_attr("macro", String::from("asset-glob"));
+            *node = contents;
         })),
     }
 }
@@ -334,6 +364,7 @@ pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     let mut items = vec![
         include_tag(env),
         subscript_deps(env),
+        link_tag(&env),
         page_nav_tag(env),
         layout_tag(env),
         asset_glob_tag(&env),

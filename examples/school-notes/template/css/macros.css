@@ -1,0 +1,26 @@
+/* ========================================================================= */
+/* LAYOUT */
+/* ========================================================================= */
+[macro='layout'] {
+    display: grid;
+    width: auto;
+    column-gap: 8px;
+    row-gap: 8px;
+}
+[macro='layout'][columns='2'] {
+    grid-template-columns: 1fr 1fr;
+}
+[macro='layout'][columns='3'] {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+[macro='layout'][columns='4'] {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+    [macro='layout'][columns='2'] ,
+    [macro='layout'][columns='3'] ,
+    [macro='layout'][columns='4'] {
+        grid-template-columns: 1fr;
+    }
+}

@@ -21,12 +21,14 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn try_load_text_file<P: AsRef<Path>>(&self, path: P) -> Result<String, ()> {
+    pub fn try_load_text_file<P: AsRef<Path>>(&self, path: P) -> Result<(PathBuf, String), ()> {
         let mut path = path.as_ref().to_owned();
         if path.starts_with(".") || path.starts_with("..") {
             path = self.current_dir.join(path);
         }
-        io::try_load_text_file(path)
+        io::try_load_text_file(&path).map(move |source| {
+            (path, source)
+        })
     }
 }
 

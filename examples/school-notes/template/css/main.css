@@ -1,0 +1,13 @@
+main {}
+main > * {}
+
+
+/* @media (max-width: 900px) {
+    main {
+        padding: 20px;
+    }
+    main > h1 {
+        max-width: unset;
+    }
+} */
+
