@@ -21,6 +21,7 @@ pub struct Env {
     pub handles: Store<Handles>,
     pub macro_system: MacroSystem,
     pub io_paths: Vec<IoPath>,
+    pub changed: Option<PathBuf>,
 }
 
 impl Env {
@@ -282,9 +283,6 @@ pub mod cache {
         })
     }
     pub fn cache_hash_file(env: &Env, key: &str, value: &str) -> Option<String> {
-        if let Some(out) = lookup_hash_file(env, key) {
-            return Some(out);
-        }
         let hash = crate::data::utils::hash_value(&value);
         let file_name = format!("{}", hash);
         let out_file_path = env.output_dir
@@ -506,7 +504,7 @@ pub fn init(manifest_path: &str) -> (config::Config, Vec<IoPath>) {
     (config, io_paths)
 }
 
-pub fn build(config: &config::Config, io_paths: &[IoPath]) {
+pub fn build(config: &config::Config, io_paths: &[IoPath], changed: Option<PathBuf>) {
     use crate::{data::*};
     for IoPath{input_file: path, output_file: output_path, ..} in io_paths.clone() {
         let env = Env {
@@ -516,6 +514,7 @@ pub fn build(config: &config::Config, io_paths: &[IoPath]) {
             handles: config.handles.clone(),
             macro_system: config.macro_system.clone(),
             io_paths: io_paths.to_owned(),
+            changed: changed.clone(),
         };
         let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);
@@ -537,10 +536,10 @@ pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
 
     let rebuild = |config: Store<Config>, io_paths: &[IoPath], path: &PathBuf| {
         let root = std::env::current_dir().unwrap();
-        let path = path.strip_prefix(&root).unwrap();
+        let path = path.strip_prefix(&root).unwrap().to_owned();
         config.access(|config| {
             if !path.starts_with(&config.output_dir.clone()) {
-                build(config, io_paths);
+                build(config, io_paths, Some(path.clone()));
                 println!("[Subscript] Compiled [{}]", path.to_str().unwrap());
             }
         })
@@ -574,7 +573,7 @@ pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
             };
         }
     }).expect("failed to watch file!");
-    build(&config, &io_paths);
+    build(&config, &io_paths, None);
     if open_browser {
         std::thread::spawn({
             move || {
@@ -604,7 +603,7 @@ pub fn main() {
     match cli::Cli::from_args() {
         cli::Cli::Compile{manifest} => {
             let (config, io_paths) = init(&manifest);
-            build(&config, &io_paths);
+            build(&config, &io_paths, None);
         }
         cli::Cli::Serve{manifest, port, open_browser} => {
             serve(&manifest, port, open_browser)

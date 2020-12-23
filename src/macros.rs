@@ -306,8 +306,17 @@ pub fn link_tag(env: &Env) -> TagMacro {
             }
             let sass_pipeline = |node: &mut Node, href: &str, path: &PathBuf| -> Option<String> {
                 let env = env.clone();
+                let sass_changed = env.changed
+                    .clone()
+                    .and_then(|changed| changed.extension().map(|x| x.to_owned()))
+                    .map(|x| {
+                        x == "sass" || x == "scss"
+                    })
+                    .unwrap_or(false);
                 if let Some(path) = crate::frontend::cache::lookup_hash_file(&env, href) {
-                    return Some(path);
+                    if !sass_changed {
+                        return Some(path);
+                    }
                 }
                 let mut options = grass::Options::default();
                 let result = grass::from_path(
