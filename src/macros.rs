@@ -316,10 +316,63 @@ pub fn link_tag(env: &Env) -> TagMacro {
             if node.has_attr(processed_attr) {
                 return ();
             }
+            let sass_pipeline = |node: &mut Node, href: &str, path: &PathBuf| -> Option<String> {
+                let env = env.clone();
+                if let Some(path) = crate::frontend::cache::lookup_hash_file(&env, href) {
+                    return Some(path);
+                }
+                let mut options = grass::Options::default();
+                let result = grass::from_path(
+                    path.to_str().unwrap(),
+                    &options,
+                );
+                match result {
+                    Ok(contents) => {
+                        crate::frontend::cache::cache_hash_file(&env, href, &contents)
+                    }
+                    Err(msg) => {
+                        eprintln!("[warning] sass compiler failed:");
+                        eprintln!("{}\n", msg);
+                        None
+                    }
+                }
+            };
             node.get_attr("href")
-                .and_then(|href| crate::frontend::cache::cache_file(&env, &href))
-                .map(|out_path| {
-                    node.set_attr("href", out_path);
+                .and_then(|href| {
+                    let path = env.current_dir.join(&href);
+                    match &(path.extension()?.to_str().unwrap())[..] {
+                        "sass" | "scss" => {
+                            let result = sass_pipeline(
+                                node,
+                                &href,
+                                &path,
+                            );
+                            match result {
+                                None => {
+                                    eprintln!(
+                                        "[warning] ignoring asset: {:?}",
+                                        path
+                                    );
+                                }
+                                Some(out_path) => {
+                                    *node = Node::new_element(
+                                        "link",
+                                        html_attrs!{
+                                            "href": out_path,
+                                            "rel": "stylesheet",
+                                        },
+                                        Vec::new(),
+                                    );
+                                }
+                            }
+                            Some(())
+                        }
+                        "css" | _ => {
+                            crate::frontend::cache::cache_file(&env, &href).map(|out_path| {
+                                node.set_attr("href", out_path);
+                            })
+                        }
+                    }
                 })
                 .map(|_| {
                     node.set_attr(processed_attr, String::new());

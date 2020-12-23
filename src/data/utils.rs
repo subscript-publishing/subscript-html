@@ -61,7 +61,7 @@ pub fn is_header_tag(tag: &str) -> bool {
     tag == "h6"
 }
 
-pub fn lookup_hash<H: std::hash::Hash>(data: &H) -> u64 {
+pub fn hash_value<H: std::hash::Hash>(data: &H) -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     let mut hasher = DefaultHasher::new();
@@ -76,11 +76,11 @@ pub fn cache_file_dep(
     let src_ext = input_path
         .extension()
         .and_then(|x| x.to_str().map(|x| x.to_owned()))
-        .map(|x| format!(".{}", x))?;
+        .map(|x| format!(".{}", x));
     let ref input_path = ctx.current_dir.join(input_path);
     if let Ok(binary) = crate::frontend::io::try_load_binary_file(input_path) {
-        let uid = lookup_hash(&binary);
-        let file_name = format!("{}{}", uid, src_ext);
+        let uid = hash_value(&binary);
+        let file_name = format!("{}{}", uid, src_ext.unwrap_or(String::new()));
         let output_file_path = ctx.output_dir
             .join("ss-data")
             .join(&PathBuf::from(file_name));
@@ -124,10 +124,10 @@ pub fn cache_file_dep_without_normalizing(
     let src_ext = input_path
         .extension()
         .and_then(|x| x.to_str().map(|x| x.to_owned()))
-        .map(|x| format!(".{}", x))?;
+        .map(|x| format!(".{}", x));
     if let Ok(binary) = crate::frontend::io::try_load_binary_file(input_path) {
-        let uid = lookup_hash(&binary);
-        let file_name = format!("{}{}", uid, src_ext);
+        let uid = hash_value(&binary);
+        let file_name = format!("{}{}", uid, src_ext.unwrap_or(String::new()));
         let output_file_path = ctx.output_dir
             .join("ss-data")
             .join(&PathBuf::from(file_name));

@@ -247,6 +247,42 @@ pub mod cache {
     pub fn cache_inline_text(env: &Env, source_path: &str) -> Option<String> {
         GLOBAL_CACHE.cache_inline_text(env, source_path)
     }
+    pub fn cache_value(env: &Env, key: &str, value: &str) {
+        GLOBAL_CACHE.insert(
+            key,
+            CachedItem::InlineText{contents: value.to_owned()}
+        )
+    }
+    pub fn lookup_value(env: &Env, key: &str) -> Option<String> {
+        GLOBAL_CACHE.lookup(key).and_then(|cached| match cached {
+            CachedItem::InlineText{contents} => Some(contents),
+            _ => None
+        })
+    }
+    pub fn lookup_hash_file(env: &Env, key: &str) -> Option<String> {
+        GLOBAL_CACHE.lookup(key).and_then(|cached| match cached {
+            CachedItem::FilePath{output} => Some(output),
+            _ => None
+        })
+    }
+    pub fn cache_hash_file(env: &Env, key: &str, value: &str) -> Option<String> {
+        if let Some(out) = lookup_hash_file(env, key) {
+            return Some(out);
+        }
+        let hash = crate::data::utils::hash_value(&value);
+        let file_name = format!("{}", hash);
+        let out_file_path = env.output_dir
+            .join("ss-data")
+            .join(&PathBuf::from(&file_name));
+        std::fs::create_dir_all(out_file_path.parent().unwrap());
+        std::fs::write(&out_file_path, value).unwrap();
+        let out_src_path = format!("/ss-data/{}", file_name);
+        let cached_entry = CachedItem::FilePath {
+            output: out_src_path.clone(),
+        };
+        GLOBAL_CACHE.insert(key, cached_entry);
+        Some(out_src_path)
+    }
     type SourcePath = PathBuf;
     type OutputPath = PathBuf;
     struct Cache(Arc<Mutex<HashMap<String, CachedItem>>>);
