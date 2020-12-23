@@ -1,3 +1,4 @@
+//! This crate refers to Subscript macros but also includes some misc rust macro helpers.
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::{PathBuf, Path};
@@ -8,6 +9,46 @@ use serde::{Serialize, Deserialize};
 
 use crate::data::*;
 use crate::frontend::Env;
+
+///////////////////////////////////////////////////////////////////////////////
+// DSL HELPERS
+///////////////////////////////////////////////////////////////////////////////
+
+pub fn value_to_string(x: impl std::fmt::Display) -> String {
+    x.to_string()
+}
+
+// #[macro_use]
+// macro_rules! value_to_string {
+//     ($val:ident) => {{
+//         let val: &str = stringify!($val);
+//         let val: String = val.replace("_", "-");
+//         val
+//     }};
+//     ($val:expr) => {
+//         $crate::macros::value_to_string($val)
+//     };
+// }
+
+#[macro_use]
+macro_rules! html_attrs {
+    () => {{
+        use std::collections::HashMap;
+        let mut attrs = HashMap::<String, String>::new();
+        attrs
+    }};
+    ($($key:tt : $val:tt),* $(,)?) => {{
+        use std::collections::HashMap;
+        let mut attrs = HashMap::<String, String>::new();
+        $({
+            let key: String = $crate::macros::value_to_string($key);
+            let val: String = $crate::macros::value_to_string($val);
+            attrs.insert(key, val);
+        })*
+        attrs
+    }};
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -257,19 +298,34 @@ pub fn layout_tag(ctx: &Env) -> TagMacro {
     }
 }
 
-pub fn asset_glob_tag(ctx: &Env) -> TagMacro {
-    let ctx = ctx.clone();
+pub fn asset_glob_tag(env: &Env) -> TagMacro {
+    let env = env.clone();
     TagMacro {
         tag: String::from("asset-glob"),
         callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
-            node.get_attr("src")
-                .map(|src| crate::frontend::io::expand_globs(vec![src]))
+            let asset_nodes = node.get_attr("src")
+                .map(|src| {
+                    crate::frontend::cache::cache_file_glob(&env, &src)
+                })
                 .unwrap_or(Vec::new())
                 .into_iter()
-                .map(|x| {
-                    
+                .map(|out_path: String| {
+                    Node::new_element(
+                        "img",
+                        html_attrs!{
+                            "src": out_path,
+                        },
+                        Vec::new(),
+                    )
                 })
                 .collect::<Vec<_>>();
+            node.eval(Rc::new(move |child: &mut Node| {
+                if child.is_tag("content") {
+                    *child = Node::Fragment(asset_nodes.clone());
+                }
+            }));
+            node.set_tag("div");
+            node.set_attr("macro", String::from("asset-glob"));
         })),
     }
 }

@@ -102,6 +102,13 @@ impl Node {
         serde_json::from_str(val.as_ref())
     }
     pub fn to_html_str(&self, indent_level: usize) -> String {
+        fn render_text(text: &str) -> String {
+            text.lines()
+                .map(|x| x.trim())
+                .filter(|x| !x.is_empty())
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
         let level = {
             if indent_level == 0 {
                 String::from("")
@@ -111,96 +118,86 @@ impl Node {
         };
         match self {
             Node::Element(element) => {
-                // COMMON
-                let attrs = element.attrs
-                    .iter()
-                    .map(|(key, value)| {
-                        if value.is_empty() {
-                            format!("{}", key)
-                        } else {
-                            format!("{}=\"{}\"", key, value)
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                let attrs = attrs.join(" ");
                 let attrs = {
-                    if !element.attrs.is_empty() {
-                        format!(" {}", attrs)
-                    } else {
+                    let mut ats = element.attrs
+                        .iter()
+                        .map(|(key, value)| {
+                            if value.is_empty() {
+                                format!("{}", key)
+                            } else {
+                                format!("{}=\"{}\"", key, value)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    if ats.is_empty() {
                         String::new()
+                    } else {
+                        format!(" {}", ats.join(" "))
                     }
                 };
-                // AD-HOC IMPLIMENTATIONS
-                let single_tag = |tag: &str| {
-                    let attrs = attrs.clone();
-                    format!(
-                        "{lvl}<{tag} {attrs} >\n",
-                        lvl=level,
-                        tag=tag,
-                        attrs=attrs
-                    )
+                let children_len = element.children.len();
+                let children = {
+                    let xs = element.children
+                        .iter()
+                        .map(|child| {
+                            match child {
+                                Node::Text(txt) => {
+                                    render_text(txt)
+                                }
+                                _ => format!(
+                                    "\n{}",
+                                    child.to_html_str(indent_level + 1)
+                                )
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    if xs.is_empty() {
+                        String::new()
+                    } else {
+                        xs.join("")
+                    }
                 };
-                let no_children = element.children.is_empty();
-                if element.tag == String::from("img") && no_children {
-                    return single_tag("img");
-                }
-                if element.tag == String::from("meta") && no_children {
-                    return single_tag("meta");
-                }
-                if element.tag == String::from("link") && no_children {
-                    return single_tag("link");
-                }
-                // GENERAL
-                let children = element.children
-                    .iter()
-                    .map(|child| {
-                        child.to_html_str(indent_level + 1)
-                    })
-                    .collect::<Vec<_>>();
-                let children = children.join("");
-                if element.children.len() == 0 {
-                    format!(
-                        "\n{lvl}<{tag}{attrs}></{tag}>\n",
-                        lvl=level,
-                        tag=element.tag,
-                        attrs=attrs,
-                    )
-                } else if self.is_inline_node() {
-                    format!(
-                        "<{tag}{attrs}>{children}</{tag}>",
-                        tag=element.tag,
-                        attrs=attrs,
-                        children=children
-                    )
-                } else if self.only_inline_children() {
-                    format!(
-                        "{lvl}<{tag}{attrs}>{children}</{tag}>\n",
-                        lvl=level,
-                        tag=element.tag,
-                        attrs=attrs,
-                        children=children
-                    )
-                } else {
-                    format!(
-                        "{lvl}<{tag}{attrs}>\n{children}{lvl}</{tag}>\n",
-                        lvl=level,
-                        tag=element.tag,
-                        attrs=attrs,
-                        children=children
-                    )
-                }
+                let contents = {
+                    // SINGLE LINE CHECKS
+                    let mut single_line_mode = false;
+                    let no_children = element.children.len() == 0;
+                    let single_child = element.children.len() == 1;
+                    let is_inline_element = utils::is_inline_tag(&element.tag);
+                    if no_children || (single_child && is_inline_element) {
+                        single_line_mode = true;
+                    }
+                    if self.is_tag("p") {
+                        single_line_mode = true;
+                    }
+                    // RENDER
+                    if single_line_mode {
+                        format!(
+                            "{children}",
+                            children=children,
+                        )
+                    } else {
+                        // The `\n{lvl}` is for the closing tag.
+                        format!(
+                            "{children}\n{lvl}",
+                            lvl=level,
+                            children=children,
+                        )
+                    }
+                };
+                format!(
+                    "{lvl}<{tag}{attrs}>{contents}</{tag}>",
+                    lvl=level,
+                    tag=element.tag,
+                    attrs=attrs,
+                    contents=contents,
+                )
             }
-            Node::Text(text) => {
-                text.clone()
-            }
+            Node::Text(txt) => {render_text(txt)}
             Node::Fragment(xs) => {
-                let children = xs
-                    .iter()
-                    .map(|child| {
-                        child.to_html_str(indent_level)
-                    })
-                    .collect::<Vec<_>>();
-                children.join("\n")
+                xs  .iter()
+                    .map(|child| child.to_html_str(indent_level))
+                    .collect::<Vec<_>>()
+                    .join("\n")
             }
         }
     }

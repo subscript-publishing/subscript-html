@@ -239,11 +239,8 @@ pub mod cache {
     pub fn cache_file(env: &Env, source_path: &str) -> Option<String> {
         GLOBAL_CACHE.cache_file(env, source_path)
     }
-    pub fn cache_file_glob(env: &Env, source: &str) -> Option<String> {
-        // let paths = crate::frontend::io::expand_globs(vec![
-        //     source.to_owned()
-        // ]);
-        unimplemented!()
+    pub fn cache_file_glob(env: &Env, source: &str) -> Vec<String> {
+        GLOBAL_CACHE.cache_file_glob(env, source)
     }
     pub fn cache_inline_text(env: &Env, source_path: &str) -> Option<String> {
         GLOBAL_CACHE.cache_inline_text(env, source_path)
@@ -308,8 +305,34 @@ pub mod cache {
                 None
             }
         }
+        fn cache_file_glob(&self, env: &Env, source: &str) -> Vec<String> {
+            if let Some(CachedItem::FileGlob{output}) = self.lookup(source) {
+                return output;
+            }
+            let source = env.current_dir.join(source);
+            let source = source.to_str().unwrap();
+            let out_paths = crate::frontend::io::expand_globs(vec![source.to_owned()])
+                .into_iter()
+                .filter_map(|path| {
+                    let out_path = utils::cache_file_dep_without_normalizing(
+                        env,
+                        &PathBuf::from(&path),
+                    );
+                    if out_path.is_none() {
+                        eprintln!("[warning] ignoring asset: {:?}", path);
+                    }
+                    out_path
+                })
+                .collect::<Vec<_>>();
+            let cached_entry = CachedItem::FileGlob {
+                output: out_paths.clone(),
+            };
+            self.insert(source, cached_entry);
+            out_paths
+        }
     }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // BUILD
