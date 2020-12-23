@@ -18,18 +18,6 @@ pub fn value_to_string(x: impl std::fmt::Display) -> String {
     x.to_string()
 }
 
-// #[macro_use]
-// macro_rules! value_to_string {
-//     ($val:ident) => {{
-//         let val: &str = stringify!($val);
-//         let val: String = val.replace("_", "-");
-//         val
-//     }};
-//     ($val:expr) => {
-//         $crate::macros::value_to_string($val)
-//     };
-// }
-
 #[macro_use]
 macro_rules! html_attrs {
     () => {{
