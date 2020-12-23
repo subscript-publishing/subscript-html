@@ -29,3 +29,22 @@ rayon = "1.5.0"
 toml = "0.5"
 rhai = {version = "0.19.7", features = ["serde", "unchecked"]}
 grass = "0.10.4"
+
+# Server
+tokio = { version = "0.2", features = ["rt-core", "macros"] }
+hyper = "0.13"
+headers = "0.3"
+mime_guess = "2.0"
+percent-encoding = "2.1"
+# Compression
+brotli = "3"
+flate2 = "1.0"
+# Rendering
+tera = "1"
+ignore = "0.4" # Respect to .gitignore while listing directories.
+# Logging
+chrono = "0.4"
+# Directory Download
+qstring = "0.7"
+zip = { version = "0.5", default-features = false, features = ["deflate"] }
+futures-util = "0.3.8"

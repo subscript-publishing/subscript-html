@@ -1,10 +1,13 @@
 use std::rc::Rc;
+use std::sync::{Arc, Mutex, RwLock};
 use std::collections::{HashSet, HashMap};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
 use std::iter::FromIterator;
 use crate::data::{Store};
+
+pub mod browser;
 
 ///////////////////////////////////////////////////////////////////////////////
 // CURRENT ENV
@@ -162,6 +165,7 @@ pub(crate) mod manifest_format {
 /// Normalized version of the raw manifest format.
 pub mod config {
     use super::*;
+    #[derive(Clone)]
     pub struct Config {
         pub input_files: Vec<PathBuf>,
         pub root: PathBuf,
@@ -220,6 +224,18 @@ pub mod cli {
             /// Explicit path to the manifest file
             #[structopt(long, default_value="./subscript.toml")]
             manifest: String,
+        },
+        Serve {
+            /// Explicit path to the manifest file
+            #[structopt(long, default_value="./subscript.toml")]
+            manifest: String,
+
+            #[structopt(long, default_value="3000")]
+            port: u16,
+
+            /// Automatically open chrome in kiosk mode.
+            #[structopt(long)]
+            open_browser: bool,
         },
     }
 }
@@ -461,7 +477,7 @@ pub fn intersect(pages: Vec<PathBuf>, output_dir: PathBuf) -> Option<PathBuf> {
     Some(PathBuf::from_iter(intersection))
 }
 
-pub fn build(manifest_path: &str) {
+pub fn init(manifest_path: &str) -> (config::Config, Vec<IoPath>) {
     use crate::{data::*};
     let config = config::Config::init(manifest_path);
     let intersection = intersect(config.input_files.clone(), config.output_dir.clone());
@@ -487,6 +503,11 @@ pub fn build(manifest_path: &str) {
             }
         })
         .collect::<Vec<_>>();
+    (config, io_paths)
+}
+
+pub fn build(config: &config::Config, io_paths: &[IoPath]) {
+    use crate::{data::*};
     for IoPath{input_file: path, output_file: output_path, ..} in io_paths.clone() {
         let env = Env {
             current_dir: path.parent().unwrap().to_owned(),
@@ -494,7 +515,7 @@ pub fn build(manifest_path: &str) {
             base_url: None,
             handles: config.handles.clone(),
             macro_system: config.macro_system.clone(),
-            io_paths: io_paths.clone(),
+            io_paths: io_paths.to_owned(),
         };
         let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);
@@ -505,10 +526,88 @@ pub fn build(manifest_path: &str) {
     }
 }
 
+pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
+    use crate::{data::*};
+    use config::Config;
+    let (config, io_paths) = init(manifest_path);
+
+    use hotwatch::{Hotwatch, Event};
+    let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
+    let fast_upate_mode = false;
+
+    let rebuild = |config: Store<Config>, io_paths: &[IoPath], path: &PathBuf| {
+        let root = std::env::current_dir().unwrap();
+        let path = path.strip_prefix(&root).unwrap();
+        config.access(|config| {
+            if !path.starts_with(&config.output_dir.clone()) {
+                build(config, io_paths);
+                println!("[Subscript] Compiled [{}]", path.to_str().unwrap());
+            }
+        })
+    };
+    hotwatch.unwatch(config.output_dir.clone());
+    hotwatch.watch(config.root.clone(), {
+        let output = config.output_dir.clone();
+        let root = config.root.clone();
+        let config: Store<Config> = Store::new(config.clone());
+        let io_paths = io_paths.clone();
+        move |event: Event| {
+            let config = config.clone();
+            match event {
+                Event::Create(path) => {
+                    rebuild(config.clone(), &io_paths, &path);
+                }
+                Event::Write(path) => {
+                    rebuild(config.clone(), &io_paths, &path);
+                }
+                Event::Remove(path) => {
+                    rebuild(config.clone(), &io_paths, &path);
+                }
+                Event::Rename(from, to) => {
+                    rebuild(config.clone(), &io_paths, &to);
+                }
+                Event::NoticeWrite(_) => {}
+                Event::NoticeRemove(_) => {}
+                Event::Chmod(_) => {}
+                Event::Rescan => {}
+                Event::Error(error, path) => {}
+            };
+        }
+    }).expect("failed to watch file!");
+    build(&config, &io_paths);
+    if open_browser {
+        std::thread::spawn({
+            move || {
+                browser::run(port);
+            }
+        });
+    }
+    crate::server::run_server(
+        crate::server::Args{
+            address: String::from("127.0.0.1"),
+            port,
+            cache: 0,
+            cors: false,
+            compress: false,
+            path: config.output_dir.clone(),
+            all: true,
+            ignore: false,
+            follow_links: true,
+            render_index: true,
+            log: false,
+            path_prefix: None,
+        }
+    );
+}
+
 pub fn main() {
     match cli::Cli::from_args() {
         cli::Cli::Compile{manifest} => {
-            build(&manifest)
+            let (config, io_paths) = init(&manifest);
+            build(&config, &io_paths);
+        }
+        cli::Cli::Serve{manifest, port, open_browser} => {
+            serve(&manifest, port, open_browser)
         }
     }
 }

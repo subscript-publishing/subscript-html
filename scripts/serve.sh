@@ -11,14 +11,7 @@ else
     CARGO_FLAGS+="$1"
 fi
 
-
-rm -rf school-notes/output
-cargo run $CARGO_FLAGS -- serve \
-    --root=school-notes \
-    --input 'school-notes/pages/**/*.html' \
-    --output=school-notes/output \
-    --trim pages \
-    --open-browser
-
+rm -rf examples/school-notes/output
+cargo run $CARGO_FLAGS -- serve --manifest examples/school-notes/subscript.toml --open-browser
 
 

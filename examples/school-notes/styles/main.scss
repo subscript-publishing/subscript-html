@@ -1,13 +1,8 @@
-main {}
-main > * {}
-
-
-/* @media (max-width: 900px) {
-    main {
-        padding: 20px;
-    }
-    main > h1 {
-        max-width: unset;
-    }
-} */
+main {
+    display: grid;
+}
+main > * {
+    justify-self: center;
+    width: 90%;
+}
 

@@ -471,9 +471,13 @@ pub struct Element {
 
 pub struct Store<T>(Arc<Mutex<T>>);
 
+unsafe impl<T> Send for Store<T> {}
+unsafe impl<T> Sync for Store<T> {}
+
 impl<T> Clone for Store<T> {
     fn clone(&self) -> Self {Store(self.0.clone())}
 }
+
 
 impl<T> std::fmt::Debug for Store<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -498,6 +502,9 @@ impl<T> Store<T> {
         use std::ops::DerefMut;
         let mut lock = self.0.lock().unwrap();
         f(lock.deref_mut())
+    }
+    pub fn into_inner(self) -> Arc<Mutex<T>> {
+        self.0
     }
 }
 
