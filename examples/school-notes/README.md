@@ -1,5 +1,6 @@
-# Colbyn’s School Notes
+# NOTE
 
-Eventually this will be factored out into it's own repository.
+**This isn’t actually my school notes anymore, it’s just an example project.**
+
 
 
