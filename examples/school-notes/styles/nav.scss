@@ -11,7 +11,7 @@ header#site-header {
 
 header#site-header h1 {
     color: #fff;
-    border-bottom: 1px solid #000000;
+    border-bottom: none;
     margin: 0;
     font-size: 1.3em;
 }
@@ -22,6 +22,7 @@ header#site-header ul {
 }
 
 header#site-header > div > ul {
+    margin-top: 4px;
     padding-left: 0;
 }
 
