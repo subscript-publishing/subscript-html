@@ -2,7 +2,8 @@
 /* SITE-HEADER */
 /* ========================================================================= */
 header#site-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: max-content 1fr;
 }
 
 header#site-header h1 {
@@ -14,6 +15,15 @@ header#site-header ul {
     list-style: none;
 }
 
+header#site-header > div > ul {
+    padding-left: 0;
+}
+
+@media (max-width: 900px) {
+    header#site-header {
+        grid-template-columns: 1fr;
+    }
+}
 
 /* ========================================================================= */
 /* PAGE-NAV */
@@ -23,7 +33,6 @@ header#site-header ul {
     background-color: #2f2f2f;
     margin: 12px;
     border-radius: 3px;
-    width: 100%;
 }
 
 
@@ -35,7 +44,6 @@ header#site-header ul {
     background-color: #2f2f2f;
     margin: 12px;
     border-radius: 3px;
-    width: 100%;
 }
 
 [macro='toc'] > li[for='h1'] {margin-left: 0;}
