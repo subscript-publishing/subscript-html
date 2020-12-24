@@ -6,6 +6,7 @@ use structopt::StructOpt;
 use serde::{Serialize, Deserialize};
 use std::iter::FromIterator;
 use crate::data::{Store};
+use rayon::prelude::*;
 
 pub mod browser;
 
@@ -506,24 +507,28 @@ pub fn init(manifest_path: &str) -> (config::Config, Vec<IoPath>) {
 
 pub fn build(config: &config::Config, io_paths: &[IoPath], changed: Option<PathBuf>) {
     use crate::{data::*};
-    for IoPath{input_file: path, output_file: output_path, ..} in io_paths.clone() {
-        let env = Env {
-            current_dir: path.parent().unwrap().to_owned(),
-            output_dir: config.output_dir.clone(),
-            base_url: None,
-            handles: config.handles.clone(),
-            macro_system: config.macro_system.clone(),
-            io_paths: io_paths.to_owned(),
-            changed: changed.clone(),
-        };
-        let html = io::load_text_file(&path);
-        let mut html = Node::parse_string(html);
-        apply_macros(&env, &mut html);
-        crate::macros::postproc_document_macros(&env, &mut html);
-        let html_str = html.to_html_str(0);
-        std::fs::create_dir_all(output_path.parent().unwrap());
-        std::fs::write(&output_path, html_str).unwrap();
-    }
+    io_paths
+        .clone()
+        .into_par_iter()
+        .for_each(|io_path| {
+            let IoPath{input_file: path, output_file: output_path, ..} = io_path;
+            let env = Env {
+                current_dir: path.parent().unwrap().to_owned(),
+                output_dir: config.output_dir.clone(),
+                base_url: None,
+                handles: config.handles.clone(),
+                macro_system: config.macro_system.clone(),
+                io_paths: io_paths.to_owned(),
+                changed: changed.clone(),
+            };
+            let html = io::load_text_file(&path);
+            let mut html = Node::parse_string(html);
+            apply_macros(&env, &mut html);
+            crate::macros::postproc_document_macros(&env, &mut html);
+            let html_str = html.to_html_str(0);
+            std::fs::create_dir_all(output_path.parent().unwrap());
+            std::fs::write(&output_path, html_str).unwrap();
+        });
 }
 
 pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
