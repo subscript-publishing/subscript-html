@@ -4,6 +4,8 @@
 header#site-header {
     display: grid;
     grid-template-columns: max-content 1fr;
+    margin: 12px;
+    grid-column-gap: 12px;
 }
 
 header#site-header h1 {
@@ -33,7 +35,6 @@ header#site-header > div > ul {
 [page-nav] {
     padding: 12px;
     background-color: #2f2f2f;
-    margin: 12px;
     border-radius: 3px;
 }
 
@@ -44,7 +45,6 @@ header#site-header > div > ul {
 [toc] {
     padding: 12px;
     background-color: #2f2f2f;
-    margin: 12px;
     border-radius: 3px;
 }
 

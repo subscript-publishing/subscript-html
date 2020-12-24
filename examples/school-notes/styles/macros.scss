@@ -24,3 +24,7 @@
         grid-template-columns: 1fr;
     }
 }
+
+[macro='layout'] img {
+    align-self: flex-start;
+}
