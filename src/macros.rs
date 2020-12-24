@@ -453,32 +453,32 @@ pub fn toc_tag(ctx: &Env, html: &mut Node) {
             vec![result]
         };
         match node {
-            Node::Element(element) if &element.tag == "h1" => {
+            Node::Element(element) if &element.tag == "h1" && !node.has_attr("toc-ignore") => {
                 let uid = element.attrs.get("id").unwrap();
                 let children = node.get_children_as_text().join(" ");
                 new_entry("h1", children, uid)
             }
-            Node::Element(element) if &element.tag == "h2" => {
+            Node::Element(element) if &element.tag == "h2" && !node.has_attr("toc-ignore") => {
                 let uid = element.attrs.get("id").unwrap();
                 let children = node.get_children_as_text().join(" ");
                 new_entry("h2", children, uid)
             }
-            Node::Element(element) if &element.tag == "h3" => {
+            Node::Element(element) if &element.tag == "h3" && !node.has_attr("toc-ignore") => {
                 let uid = element.attrs.get("id").unwrap();
                 let children = node.get_children_as_text().join(" ");
                 new_entry("h3", children, uid)
             }
-            Node::Element(element) if &element.tag == "h4" => {
+            Node::Element(element) if &element.tag == "h4" && !node.has_attr("toc-ignore") => {
                 let uid = element.attrs.get("id").unwrap();
                 let children = node.get_children_as_text().join(" ");
                 new_entry("h4", children, uid)
             }
-            Node::Element(element) if &element.tag == "h5" => {
+            Node::Element(element) if &element.tag == "h5" && !node.has_attr("toc-ignore") => {
                 let uid = element.attrs.get("id").unwrap();
                 let children = node.get_children_as_text().join(" ");
                 new_entry("h5", children, uid)
             }
-            Node::Element(element) if &element.tag == "h6" => {
+            Node::Element(element) if &element.tag == "h6" && !node.has_attr("toc-ignore") => {
                 let uid = element.attrs.get("id").unwrap();
                 let children = node.get_children_as_text().join(" ");
                 new_entry("h6", children, uid)
