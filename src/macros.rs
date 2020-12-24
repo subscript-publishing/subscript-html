@@ -393,7 +393,15 @@ pub fn asset_glob_tag(env: &Env) -> TagMacro {
                     Node::new_element(
                         "img",
                         html_attrs!{
-                            "src": out_path,
+                            "src": {
+                                out_path.clone()
+                            },
+                            "onclick": {
+                                format!(
+                                    "location.href='{}';",
+                                    out_path,
+                                )
+                            }
                         },
                         Vec::new(),
                     )
