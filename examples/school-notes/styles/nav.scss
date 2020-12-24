@@ -9,10 +9,12 @@ header#site-header {
 header#site-header h1 {
     color: #fff;
     border-bottom: 1px solid #b1b1b1;
+    margin: 0;
 }
 
 header#site-header ul {
     list-style: none;
+    margin-bottom: 0;
 }
 
 header#site-header > div > ul {
