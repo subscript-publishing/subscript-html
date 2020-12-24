@@ -1,0 +1,42 @@
+/* ========================================================================= */
+/* SITE-HEADER */
+/* ========================================================================= */
+header#site-header {
+    display: flex;
+}
+
+header#site-header h1 {
+    color: #fff;
+    border-bottom: 1px solid #b1b1b1;
+}
+
+header#site-header ul {
+    list-style: none;
+}
+
+
+/* ========================================================================= */
+/* PAGE-NAV */
+/* ========================================================================= */
+[page-nav] {
+    padding: 12px;
+    background-color: #2f2f2f;
+    margin: 12px;
+    border-radius: 3px;
+    width: 100%;
+}
+
+
+/* ========================================================================= */
+/* TOC */
+/* ========================================================================= */
+[toc] {
+    padding: 12px;
+    background-color: #2f2f2f;
+    margin: 12px;
+    border-radius: 3px;
+    width: 100%;
+}
+
+[macro='toc'] > li[for='h1'] {margin-left: 0;}
+[macro='toc'] > li[for='h2'] {margin-left: 20px;}
