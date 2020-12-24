@@ -1,4 +1,15 @@
 /* ========================================================================= */
+/* TOC */
+/* ========================================================================= */
+[macro='toc'] {
+    display: grid;
+    width: auto;
+    column-gap: 8px;
+    row-gap: 8px;
+}
+
+
+/* ========================================================================= */
 /* LAYOUT */
 /* ========================================================================= */
 [macro='layout'] {
@@ -8,13 +19,13 @@
     row-gap: 8px;
 }
 [macro='layout'][columns='2'] {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
 }
 [macro='layout'][columns='3'] {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
 }
 [macro='layout'][columns='4'] {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
 }
 
 @media (max-width: 900px) {

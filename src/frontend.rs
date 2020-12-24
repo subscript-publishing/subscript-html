@@ -519,6 +519,7 @@ pub fn build(config: &config::Config, io_paths: &[IoPath], changed: Option<PathB
         let html = io::load_text_file(&path);
         let mut html = Node::parse_string(html);
         apply_macros(&env, &mut html);
+        crate::macros::postproc_document_macros(&env, &mut html);
         let html_str = html.to_html_str(0);
         std::fs::create_dir_all(output_path.parent().unwrap());
         std::fs::write(&output_path, html_str).unwrap();

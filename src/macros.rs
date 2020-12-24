@@ -410,6 +410,106 @@ pub fn asset_glob_tag(env: &Env) -> TagMacro {
     }
 }
 
+pub fn toc_tag(ctx: &Env, html: &mut Node) {
+    html.eval(Rc::new(|node: &mut Node| {
+        if let Some(tag) = node.tag() {
+            let mut set_id = || {
+                if node.get_attr("id").is_none() {
+                    node.set_attr("id", format!(
+                        "{}",
+                        rand::random::<u64>()
+                    ))
+                }
+            };
+            match &tag[..] {
+                "h1" => set_id(),
+                "h2" => set_id(),
+                "h3" => set_id(),
+                "h4" => set_id(),
+                "h5" => set_id(),
+                "h6" => set_id(),
+                _ => ()
+            }
+        }
+    }));
+    fn runner(node: &Node) -> Vec<Node> {
+        let new_entry = |tag: &str, children: String, uid: &String| {
+            let mut li_attrs = HashMap::default();
+            li_attrs.insert(String::from("for"), String::from(tag));
+            let mut a_attrs = HashMap::default();
+            a_attrs.insert(String::from("href"), format!(
+                "#{}",
+                uid
+            ));
+            let result = Node::new_element(
+                "li",
+                li_attrs,
+                vec![Node::new_element(
+                    "a",
+                    a_attrs,
+                    vec![Node::new_text(&children)]
+                )]
+            );
+            vec![result]
+        };
+        match node {
+            Node::Element(element) if &element.tag == "h1" => {
+                let uid = element.attrs.get("id").unwrap();
+                let children = node.get_children_as_text().join(" ");
+                new_entry("h1", children, uid)
+            }
+            Node::Element(element) if &element.tag == "h2" => {
+                let uid = element.attrs.get("id").unwrap();
+                let children = node.get_children_as_text().join(" ");
+                new_entry("h2", children, uid)
+            }
+            Node::Element(element) if &element.tag == "h3" => {
+                let uid = element.attrs.get("id").unwrap();
+                let children = node.get_children_as_text().join(" ");
+                new_entry("h3", children, uid)
+            }
+            Node::Element(element) if &element.tag == "h4" => {
+                let uid = element.attrs.get("id").unwrap();
+                let children = node.get_children_as_text().join(" ");
+                new_entry("h4", children, uid)
+            }
+            Node::Element(element) if &element.tag == "h5" => {
+                let uid = element.attrs.get("id").unwrap();
+                let children = node.get_children_as_text().join(" ");
+                new_entry("h5", children, uid)
+            }
+            Node::Element(element) if &element.tag == "h6" => {
+                let uid = element.attrs.get("id").unwrap();
+                let children = node.get_children_as_text().join(" ");
+                new_entry("h6", children, uid)
+            }
+            Node::Element(element) => {
+                return element.children.iter().flat_map(|x| runner(x)).collect()
+            }
+            Node::Fragment(nodes) => {
+                nodes
+                    .iter()
+                    .flat_map(|x| runner(x))
+                    .collect()
+            }
+            _ => Vec::new()
+        }
+    }
+    let headers = runner(html);
+    html.eval(Rc::new(move |node: &mut Node| {
+        let headers = headers.clone();
+        if node.is_tag("toc") {
+            let mut attrs = node.get_attributes();
+            attrs.insert(String::from("macro"), String::from("toc"));
+            *node = Node::new_element(
+                "ul",
+                attrs,
+                headers
+            );
+        }
+    }));
+}
+
 pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     let mut items = vec![
         include_tag(env),
@@ -422,5 +522,9 @@ pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     ];
     items.append(&mut latex_suit(env));
     items
+}
+
+pub fn postproc_document_macros(env: &Env, html: &mut Node) {
+    toc_tag(env, html);
 }
 
