@@ -131,6 +131,21 @@ Versatility in Subscript is made possible VIA macros, the syntax is akin to web 
 
       <sup>[†]:</sup> Regarding Sile and it's innovative layout system, since Subscript is based on web technologies, it can offer responsive grid layouts for different PDF resolutions.
 
+## Implemented Macros
+> See [original implementation of macros.rs](https://github.com/colbyn/subscript/blob/master/src/macros.rs) for macros that still need to be moved over.
+
+|Macro Name|Description|Example|
+|----------|-----------|-------|
+|`<include>`||`<include src="../base/template.html"><p>Embedded Contents</p></include>`|
+|`<page-nav>`|Site Navigation||
+|`<layout>`|Simple Layout Helper||
+|`<asset-glob>`||`<asset-glob src="../images/*.jpg"><content></content></asset-glob>`|
+|`<markdown>`||`<markdown src="../posts/article1.md"></markdown>`|
+|`<toc>`|Generates a Table of Contents||
+|`<tex>`|Inline LaTeX Math|`<tex>y = x^2</tex>`|
+|`<texblock>`|LaTeX Math Block|`<texblock>y = x^2</texblock>`|
+|`<equation>`|LaTeX Math Block In a nested equation and split environment|`<equation>A &= B \\B &= A</equation>`|
+
 
 ## High Level TODO:
 
