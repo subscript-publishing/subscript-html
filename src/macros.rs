@@ -518,6 +518,36 @@ pub fn toc_tag(ctx: &Env, html: &mut Node) {
     }));
 }
 
+pub fn markdown_tag(ctx: &Env) -> TagMacro {
+    pub fn compile_markdown(source: String) -> Node {
+        let html_str = {
+            use comrak::{markdown_to_html, ComrakOptions};
+            let mut options = ComrakOptions::default();
+            options.render.unsafe_ = true;
+            options.render.unsafe_ = true;
+            let out = markdown_to_html(&source, &options);
+            out
+        };
+        Node::parse_str(&html_str)
+    }
+    let ctx = ctx.clone();
+    TagMacro {
+        tag: String::from("markdown"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            node.get_attr("src")
+                .map(|src| -> PathBuf {
+                    ctx.current_dir.join(src)
+                })
+                .and_then(|src| crate::frontend::io::try_load_text_file(src).ok())
+                .map(|markdown| compile_markdown(markdown))
+                .map(|html| html.unwrap_contents("div"))
+                .map(|html| {
+                    *node = Node::Fragment(html);
+                });
+        })),
+    }
+}
+
 pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
     let mut items = vec![
         include_tag(env),
@@ -527,6 +557,7 @@ pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
         layout_tag(env),
         asset_glob_tag(&env),
         img_tag(&env),
+        markdown_tag(&env),
     ];
     items.append(&mut latex_suit(env));
     items

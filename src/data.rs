@@ -339,6 +339,16 @@ impl Node {
             _ => Default::default()
         }
     }
+    /// If this is a fragment, it returns the contents of such.
+    pub fn unwrap_contents(self, tag: &str) -> Vec<Node> {
+        match self {
+            Node::Fragment(xs) => xs,
+            Node::Element(element) if &element.tag == tag => {
+                element.children
+            }
+            x => vec![x]
+        }
+    }
     pub fn normalize(self) -> Self {
         match self {
             Node::Element(mut element) => {

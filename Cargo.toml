@@ -48,3 +48,6 @@ chrono = "0.4"
 qstring = "0.7"
 zip = { version = "0.5", default-features = false, features = ["deflate"] }
 futures-util = "0.3.8"
+
+# Markdown
+comrak = "0.9.0"
