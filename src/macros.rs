@@ -117,18 +117,20 @@ pub fn img_tag(env: &Env) -> TagMacro {
 
 pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
     let ctx = env.clone();
-    fn block_latex(node: &Node, value: String) -> Node {
+    fn block_latex(macro_name: &str, node: &Node, value: String) -> Node {
         let mut attrs = node.get_attributes();
         attrs.insert(String::from("latex"), String::from("block"));
+        attrs.insert(String::from("macro"), String::from(macro_name));
         Node::new_element(
             "div",
             attrs,
             vec![Node::new_text(&format!("$${}$$", value))]
         )
     }
-    fn inline_latex(node: &Node, value: String) -> Node {
+    fn inline_latex(macro_name: &str, node: &Node, value: String) -> Node {
         let mut attrs = node.get_attributes();
         attrs.insert(String::from("latex"), String::from("inline"));
+        attrs.insert(String::from("macro"), String::from(macro_name));
         Node::new_element(
             "span",
             attrs,
@@ -141,7 +143,7 @@ pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
             callback: MacroCallbackMut(Rc::new(|node: &mut Node| {
                 node.get_text_contents()
                     .map(|text_contents| {
-                        let new_node = inline_latex(node, text_contents);
+                        let new_node = inline_latex("tex", node, text_contents);
                         *node = new_node;
                     });
             })),
@@ -151,7 +153,7 @@ pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
             callback: MacroCallbackMut(Rc::new(|node: &mut Node| {
                 node.get_text_contents()
                     .map(|text_contents| {
-                        *node = block_latex(node, text_contents);
+                        *node = block_latex("texblock", node, text_contents);
                     });
             })),
         },
@@ -160,7 +162,7 @@ pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
             callback: MacroCallbackMut(Rc::new(|node: &mut Node| {
                 node.get_text_contents()
                     .map(|text_contents| {
-                        let new_node = block_latex(node, format!(
+                        let new_node = block_latex("equation", node, format!(
                             "\\begin{{equation}}\n\\begin{{split}}\n{txt}\n\\end{{split}}\n\\end{{equation}}",
                             txt=text_contents
                         ));
