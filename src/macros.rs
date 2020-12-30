@@ -185,7 +185,7 @@ pub fn subscript_deps(ctx: &Env) -> TagMacro {
 pub fn note_tag(ctx: &Env) -> TagMacro {
     let ctx = ctx.clone();
     TagMacro {
-        tag: String::from("head"),
+        tag: String::from("note"),
         callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
             node.set_tag("div");
             node.set_attr("macro", String::from("note"));
@@ -569,6 +569,7 @@ pub fn tag_macros(env: &Env) -> Vec<TagMacro> {
         asset_glob_tag(&env),
         img_tag(&env),
         markdown_tag(&env),
+        note_tag(&env),
     ];
     items.append(&mut latex_suit(env));
     items
