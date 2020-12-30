@@ -182,6 +182,17 @@ pub fn subscript_deps(ctx: &Env) -> TagMacro {
     }
 }
 
+pub fn note_tag(ctx: &Env) -> TagMacro {
+    let ctx = ctx.clone();
+    TagMacro {
+        tag: String::from("head"),
+        callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
+            node.set_tag("div");
+            node.set_attr("macro", String::from("note"));
+        })),
+    }
+}
+
 pub fn script_tag(env: &Env) -> TagMacro {
     let env = env.clone();
     TagMacro {
