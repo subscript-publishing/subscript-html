@@ -174,19 +174,31 @@ pub mod config {
         pub output_dir: PathBuf,
         pub handles: Store<Handles>,
         pub macro_system: MacroSystem,
+        pub base_url: Option<String>,
     }
     impl Config {
         /// Only call this once.
         /// Sets the current working dir to `normalized_root_dir`.
-        pub fn init<P: AsRef<Path>>(manifest_path: P) -> Self {
+        pub fn init<P: AsRef<Path>>(
+            manifest_path: P,
+            output_dir_override: Option<PathBuf>,
+        ) -> Self {
             let manifest_path = manifest_path.as_ref().to_owned();
             let manifest_root_dir = manifest_path.parent().unwrap();
-            // let pwd = std::env::current_dir().unwrap();
             let manifest = manifest_format::load(&manifest_path);
             let normalized_root_dir = manifest_root_dir.join(&manifest.project.root);
             std::env::set_current_dir(&normalized_root_dir).unwrap();
             let input_files = io::expand_globs(manifest.project.pages.clone());
-            let output_dir = manifest.project.output_dir.clone();
+            let output_dir = {
+                if let Some(output_dir) = output_dir_override {
+                    output_dir
+                        .strip_prefix(&normalized_root_dir)
+                        .unwrap_or(&output_dir)
+                        .to_owned()
+                } else {
+                    manifest.project.output_dir.clone()
+                }
+            };
             if !output_dir.exists() {
                 std::fs::create_dir_all(&output_dir);
             }
@@ -207,6 +219,7 @@ pub mod config {
                 output_dir,
                 handles: Store::new(handles),
                 macro_system,
+                base_url: None,
             }
         }
     }
@@ -226,6 +239,12 @@ pub mod cli {
             /// Explicit path to the manifest file
             #[structopt(long, default_value="./subscript.toml")]
             manifest: String,
+            /// Used for e.g. GitHub pages.
+            #[structopt(long)]
+            base_url: Option<String>,
+            /// Override output directory. Relative to the root directory.
+            #[structopt(long)]
+            output_dir: Option<PathBuf>,
         },
         Serve {
             /// Explicit path to the manifest file
@@ -476,9 +495,14 @@ pub fn intersect(pages: Vec<PathBuf>, output_dir: PathBuf) -> Option<PathBuf> {
     Some(PathBuf::from_iter(intersection))
 }
 
-pub fn init(manifest_path: &str) -> (config::Config, Vec<IoPath>) {
+pub fn init(
+    manifest_path: &str,
+    base_url: Option<String>,
+    output_dir_override: Option<PathBuf>,
+) -> (config::Config, Vec<IoPath>) {
     use crate::{data::*};
-    let config = config::Config::init(manifest_path);
+    let mut config = config::Config::init(manifest_path, output_dir_override);
+    config.base_url = base_url;
     let intersection = intersect(config.input_files.clone(), config.output_dir.clone());
     let io_paths = config.input_files
         .clone()
@@ -505,7 +529,12 @@ pub fn init(manifest_path: &str) -> (config::Config, Vec<IoPath>) {
     (config, io_paths)
 }
 
-pub fn build(config: &config::Config, io_paths: &[IoPath], changed: Option<PathBuf>) {
+pub fn build(
+    config: &config::Config,
+    io_paths: &[IoPath],
+    changed: Option<PathBuf>,
+    base_url: Option<String>,
+) {
     use crate::{data::*};
     io_paths
         .clone()
@@ -515,7 +544,7 @@ pub fn build(config: &config::Config, io_paths: &[IoPath], changed: Option<PathB
             let env = Env {
                 current_dir: path.parent().unwrap().to_owned(),
                 output_dir: config.output_dir.clone(),
-                base_url: None,
+                base_url: base_url.clone(),
                 handles: config.handles.clone(),
                 macro_system: config.macro_system.clone(),
                 io_paths: io_paths.to_owned(),
@@ -534,18 +563,16 @@ pub fn build(config: &config::Config, io_paths: &[IoPath], changed: Option<PathB
 pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
     use crate::{data::*};
     use config::Config;
-    let (config, io_paths) = init(manifest_path);
-
+    let (config, io_paths) = init(manifest_path, None, None);
     use hotwatch::{Hotwatch, Event};
     let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
     let fast_upate_mode = false;
-
     let rebuild = |config: Store<Config>, io_paths: &[IoPath], path: &PathBuf| {
         let root = std::env::current_dir().unwrap();
         let path = path.strip_prefix(&root).unwrap().to_owned();
         config.access(|config| {
             if !path.starts_with(&config.output_dir.clone()) {
-                build(config, io_paths, Some(path.clone()));
+                build(config, io_paths, Some(path.clone()), None);
                 println!("[Subscript] Compiled [{}]", path.to_str().unwrap());
             }
         })
@@ -579,7 +606,7 @@ pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
             };
         }
     }).expect("failed to watch file!");
-    build(&config, &io_paths, None);
+    build(&config, &io_paths, None, None);
     if open_browser {
         std::thread::spawn({
             move || {
@@ -607,9 +634,14 @@ pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
 
 pub fn main() {
     match cli::Cli::from_args() {
-        cli::Cli::Compile{manifest} => {
-            let (config, io_paths) = init(&manifest);
-            build(&config, &io_paths, None);
+        cli::Cli::Compile{manifest, base_url, output_dir} => {
+            let output_dir_override = output_dir;
+            let (config, io_paths) = init(
+                &manifest,
+                base_url.clone(),
+                output_dir_override,
+            );
+            build(&config, &io_paths, None, base_url);
         }
         cli::Cli::Serve{manifest, port, open_browser} => {
             serve(&manifest, port, open_browser)

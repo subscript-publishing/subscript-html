@@ -10,6 +10,8 @@ use serde::{Serialize, Deserialize};
 use crate::data::*;
 use crate::frontend::Env;
 
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // DSL HELPERS
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,7 +101,7 @@ pub fn img_tag(env: &Env) -> TagMacro {
         node.get_attr("src")
             .and_then(|src_path| {
                 if !node.has_attr(processed_attr) {
-                    let new_src = crate::frontend::cache::cache_file(&env, &src_path)?;
+                    let mut new_src = crate::frontend::cache::cache_file(&env, &src_path)?;
                     node.set_attr("src", format!(
                         "{}",
                         new_src
@@ -173,12 +175,12 @@ pub fn latex_suit(env: &Env) -> Vec<TagMacro> {
     ]
 }
 
-pub fn subscript_deps(ctx: &Env) -> TagMacro {
-    let ctx = ctx.clone();
+pub fn subscript_deps(env: &Env) -> TagMacro {
+    let env = env.clone();
     TagMacro {
         tag: String::from("head"),
         callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
-            let deps = Node::parse_str(include_str!("../assets/deps.html"));
+            let mut deps = Node::parse_str(include_str!("../assets/deps.html"));
             node.append_children(deps.into_fragment());
         })),
     }
@@ -364,7 +366,21 @@ pub fn link_tag(env: &Env) -> TagMacro {
                                         path
                                     );
                                 }
-                                Some(out_path) => {
+                                Some(mut out_path) => {
+                                    if let Some(base_url) = env.base_url.as_ref() {
+                                        let base_url = base_url
+                                            .strip_suffix("/")
+                                            .unwrap_or(base_url);
+                                        out_path = out_path
+                                            .strip_prefix("/")
+                                            .map(|x| x.to_owned())
+                                            .unwrap_or(out_path);
+                                        out_path = format!(
+                                            "{}/{}",
+                                            base_url,
+                                            out_path,
+                                        );
+                                    }
                                     *node = Node::new_element(
                                         "link",
                                         html_attrs!{
@@ -378,7 +394,21 @@ pub fn link_tag(env: &Env) -> TagMacro {
                             Some(())
                         }
                         "css" | _ => {
-                            crate::frontend::cache::cache_file(&env, &href).map(|out_path| {
+                            crate::frontend::cache::cache_file(&env, &href).map(|mut out_path| {
+                                if let Some(mut base_url) = env.base_url.as_ref() {
+                                    let base_url = base_url
+                                            .strip_suffix("/")
+                                            .unwrap_or(base_url);
+                                    out_path = out_path
+                                        .strip_prefix("/")
+                                        .map(|x| x.to_owned())
+                                        .unwrap_or(out_path);
+                                    out_path = format!(
+                                        "{}/{}",
+                                        base_url,
+                                        out_path,
+                                    );
+                                }
                                 node.set_attr("href", out_path);
                             })
                         }

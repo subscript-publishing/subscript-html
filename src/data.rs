@@ -122,12 +122,11 @@ impl Node {
                 let attrs = {
                     let mut ats = element.attrs
                         .iter()
-                        .map(|(key, value)| {
+                        .map(|(key, mut value)| {
                             if value.is_empty() {
-                                format!("{}", key)
-                            } else {
-                                format!("{}=\"{}\"", key, value)
+                                return format!("{}", key);
                             }
+                            format!("{}=\"{}\"", key, value)
                         })
                         .collect::<Vec<_>>();
                     if ats.is_empty() {
