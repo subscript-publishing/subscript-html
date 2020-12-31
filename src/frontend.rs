@@ -242,7 +242,7 @@ pub mod cli {
             /// Used for e.g. GitHub pages.
             #[structopt(long)]
             base_url: Option<String>,
-            /// Override output directory. Relative to the root directory.
+            /// Override output directory.
             #[structopt(long)]
             output_dir: Option<PathBuf>,
         },
