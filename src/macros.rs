@@ -219,8 +219,8 @@ pub fn script_tag(env: &Env) -> TagMacro {
     }
 }
 
-pub fn page_nav_tag(ctx: &Env) -> TagMacro {
-    let ctx = ctx.clone();
+pub fn page_nav_tag(env: &Env) -> TagMacro {
+    let env = env.clone();
     #[derive(Debug, Clone)]
     struct PageTree {
         route: String,
@@ -241,11 +241,11 @@ pub fn page_nav_tag(ctx: &Env) -> TagMacro {
             sub_pages,
         })
     }
-    fn page_tree_to_html(page: PageTree) -> Node {
+    fn page_tree_to_html(env: &Env, page: PageTree) -> Node {
         let children = page.sub_pages
             .clone()
             .into_iter()
-            .map(|x| page_tree_to_html(x))
+            .map(|x| page_tree_to_html(env, x))
             .collect::<Vec<_>>();
         let empty_children = children.is_empty();
         let child_wrapper = Node::new_element(
@@ -253,11 +253,32 @@ pub fn page_nav_tag(ctx: &Env) -> TagMacro {
             HashMap::default(),
             children,
         );
+        let compute_route = || {
+            if page.route.starts_with("/") {
+                if let Some(base_url) = env.base_url.as_ref() {
+                    let route = page.route.clone();
+                    let base_url = base_url
+                        .strip_suffix("/")
+                        .map(|x| x.to_owned())
+                        .unwrap_or(base_url.clone());
+                    let route = route
+                        .strip_prefix("/")
+                        .map(|x| x.to_owned())
+                        .unwrap_or(route);
+                    return format!(
+                        "{}/{}",
+                        base_url,
+                        route,
+                    );
+                }
+            }
+            return page.route.clone();
+        };
         let link = Node::new_element(
             "a",
-            HashMap::from_iter(vec![
-                (String::from("href"), page.route)
-            ]),
+            html_attrs!{
+                "href": {compute_route()},
+            },
             vec![Node::new_text(&page.title)]
         );
         if empty_children {
@@ -281,7 +302,7 @@ pub fn page_nav_tag(ctx: &Env) -> TagMacro {
                 .get_children()
                 .into_iter()
                 .filter_map(|x| build_page_tree(&x))
-                .map(|x| page_tree_to_html(x))
+                .map(|x| page_tree_to_html(&env, x))
                 .collect::<Vec<_>>();
             *node = Node::new_element(
                 "ul",
