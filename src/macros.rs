@@ -322,6 +322,20 @@ pub fn layout_tag(ctx: &Env) -> TagMacro {
         callback: MacroCallbackMut(Rc::new(move |node: &mut Node| {
             node.set_tag("div");
             node.set_attr("macro", String::from("layout"));
+            if node.has_attr("boxed") {
+                let children = node
+                    .get_children()
+                    .into_iter()
+                    .map(|x| Node::new_element(
+                        "div",
+                        html_attrs!{
+                            "boxed-child": ""
+                        },
+                        vec![x],
+                    ))
+                    .collect::<Vec<_>>();
+                node.replace_children(children);
+            }
             // Allow for `cols` or `columns`; normalize to `columns`.
             node.get_attr("cols")
                 .map(|val| {
