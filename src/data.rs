@@ -104,11 +104,7 @@ impl Node {
     }
     pub fn to_html_str(&self, indent_level: usize) -> String {
         fn render_text(text: &str) -> String {
-            text.lines()
-                .map(|x| x.trim())
-                .filter(|x| !x.is_empty())
-                .collect::<Vec<_>>()
-                .join("\n")
+            text.to_owned()
         }
         let level = {
             if indent_level == 0 {
