@@ -223,12 +223,12 @@ pub fn page_nav_tag(env: &Env) -> TagMacro {
     let env = env.clone();
     #[derive(Debug, Clone)]
     struct PageTree {
-        route: String,
+        route: Option<String>,
         title: String,
         sub_pages: Vec<PageTree>,
     }
     fn build_page_tree(node: &Node) -> Option<PageTree> {
-        let route = node.get_attr("route")?;
+        let route = node.get_attr("route");
         let title = node.get_attr("title")?;
         let sub_pages = node
             .get_children()
@@ -253,32 +253,36 @@ pub fn page_nav_tag(env: &Env) -> TagMacro {
             HashMap::default(),
             children,
         );
-        let compute_route = || {
-            if page.route.starts_with("/") {
-                if let Some(base_url) = env.base_url.as_ref() {
-                    let route = page.route.clone();
-                    let base_url = base_url
-                        .strip_suffix("/")
-                        .map(|x| x.to_owned())
-                        .unwrap_or(base_url.clone());
-                    let route = route
-                        .strip_prefix("/")
-                        .map(|x| x.to_owned())
-                        .unwrap_or(route);
-                    return format!(
-                        "{}/{}",
-                        base_url,
-                        route,
-                    );
+        let compute_route = || -> Option<String> {
+            if let Some(route) = page.route.as_ref() {
+                if route.starts_with("/") {
+                    if let Some(base_url) = env.base_url.as_ref() {
+                        let route = route.clone();
+                        let base_url: String = base_url
+                            .strip_suffix("/")
+                            .map(|x| x.to_owned())
+                            .unwrap_or(base_url.clone());
+                        let route: String = route
+                            .strip_prefix("/")
+                            .map(|x| x.to_owned())
+                            .unwrap_or(route);
+                        return Some(format!(
+                            "{}/{}",
+                            base_url,
+                            route,
+                        ));
+                    }
                 }
             }
             return page.route.clone();
         };
+        let mut attrs = HashMap::<String, String>::default();
+        if let Some(route) = compute_route() {
+            attrs.insert(String::from("href"), route);
+        }
         let link = Node::new_element(
             "a",
-            html_attrs!{
-                "href": {compute_route()},
-            },
+            attrs,
             vec![Node::new_text(&page.title)]
         );
         if empty_children {
