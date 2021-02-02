@@ -159,7 +159,7 @@ impl Node {
                     let no_children = element.children.len() == 0;
                     let single_child = element.children.len() == 1;
                     let is_inline_element = utils::is_inline_tag(&element.tag);
-                    if no_children || (single_child && is_inline_element) {
+                    if no_children || (single_child && is_inline_element) || is_inline_element {
                         single_line_mode = true;
                     }
                     if self.is_tag("p") {
