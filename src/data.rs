@@ -113,6 +113,7 @@ impl Node {
                 std::iter::repeat(" ").take(indent_level * 2).collect::<String>()
             }
         };
+        let is_inline_node = self.is_inline_node();
         match self {
             Node::Element(element) => {
                 let attrs = {
@@ -140,6 +141,10 @@ impl Node {
                                 Node::Text(txt) => {
                                     render_text(txt)
                                 }
+                                _ if child.is_inline_node() => format!(
+                                    "{}",
+                                    child.to_html_str(0)
+                                ),
                                 _ => format!(
                                     "\n{}",
                                     child.to_html_str(indent_level + 1)
@@ -158,7 +163,7 @@ impl Node {
                     let mut single_line_mode = false;
                     let no_children = element.children.len() == 0;
                     let single_child = element.children.len() == 1;
-                    let is_inline_element = utils::is_inline_tag(&element.tag);
+                    let is_inline_element = utils::is_inline_tag(&element.tag) || is_inline_node;
                     if no_children || (single_child && is_inline_element) || is_inline_element {
                         single_line_mode = true;
                     }
@@ -193,7 +198,7 @@ impl Node {
                 xs  .iter()
                     .map(|child| child.to_html_str(indent_level))
                     .collect::<Vec<_>>()
-                    .join("\n")
+                    .join("")
             }
         }
     }
