@@ -3,6 +3,7 @@ use std::convert::AsRef;
 
 pub fn is_inline_tag(tag: &str) -> bool {
     if (tag == "a") {return true}
+    if (tag == "u") {return true}
     if (tag == "abbr") {return true}
     if (tag == "audio") {return true}
     if (tag == "b") {return true}
