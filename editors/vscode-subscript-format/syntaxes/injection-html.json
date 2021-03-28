@@ -10,6 +10,15 @@
 		},
 		{
 			"include": "#latex-equation"
+        },
+		{
+			"include": "#x-latex-block"
+        },
+		{
+			"include": "#x-latex-inline"
+		},
+		{
+			"include": "#x-latex-equation"
         }
 	],
 	"repository": {
@@ -40,6 +49,42 @@
 		"latex-equation": {
 			"begin": "(<equation>)",
             "end": "(</equation>)",
+            "name": "comment.block.html",
+            "contentName": "support.class.math.block.environment.latex",
+			"patterns": [
+				{
+                    "contentName": "meta.embedded.block.latex",
+					"patterns": [{"include": "text.tex#math"}]
+				}
+			]
+		},
+		"x-latex-block": {
+			"begin": "(<x-texblock>)",
+            "end": "(</x-texblock>)",
+			"name": "comment.block.html",
+			"contentName": "support.class.math.block.environment.latex",
+			"patterns": [
+				{
+                    "contentName": "meta.embedded.block.latex",
+					"patterns": [{"include": "text.tex.latex"}]
+				}
+			]
+		},
+		"x-latex-inline": {
+            "begin": "(<x-tex>)",
+            "end": "(</x-tex>)",
+            "name": "comment.block.html",
+            "contentName": "support.class.math.block.environment.latex",
+			"patterns": [
+				{
+                    "contentName": "meta.embedded.block.latex",
+					"patterns": [{"include": "text.tex#math"}]
+				}
+			]
+		},
+		"latex-x-equation": {
+			"begin": "(<x-equation>)",
+            "end": "(</x-equation>)",
             "name": "comment.block.html",
             "contentName": "support.class.math.block.environment.latex",
 			"patterns": [
