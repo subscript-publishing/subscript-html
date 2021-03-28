@@ -82,7 +82,7 @@
 				}
 			]
 		},
-		"latex-x-equation": {
+		"x-latex-equation": {
 			"begin": "(<x-equation>)",
             "end": "(</x-equation>)",
             "name": "comment.block.html",
