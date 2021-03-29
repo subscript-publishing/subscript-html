@@ -4,10 +4,6 @@
 /* CALC STYLING */
 /* ========================================================================= */
 
-/* html, body {
-    min-height: 90%;
-    height: 100%;
-} */
 
 body[calc] {
     margin: 0;
@@ -207,6 +203,25 @@ x-note:not([boxed]) > h6:not(:first-child) {
     padding-left: 10px;
 }
 
+/* ========================================================================= */
+/* NOTE EXTEND STYLING */
+/* ========================================================================= */
+
+x-note[extend] {
+    box-shadow: 0 0 0px 1px #a3d4a95c;
+    background-color: #1eb93112;
+    justify-content: center;
+    align-items: center;
+    height: fit-content;
+}
+x-note[extend] > p {
+    text-align: center;
+    color: #a0a0a0;
+    font-size: 1em;
+    opacity: 0.5;
+    margin: 0;
+}
+
 
 /* ========================================================================= */
 /* LAYOUT STYLING */
@@ -253,4 +268,71 @@ x-layout[boxed] > [boxed-child] {
     align-items: center;
     grid-row-gap: 4px;
     padding: 8px;
+}
+
+x-layout#root > header {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+x-layout#root > header > aside {
+    display: grid;
+    grid-template-rows: repeat(3, max-content);
+    grid-row-gap: 4px;
+    padding: 8px;
+}
+x-layout#root > header > aside > button {
+    border: 1px solid #000;
+    background-color: #fff;
+    outline: none;
+    box-shadow: 0 0 0px 1px #a3d4a95c;
+    background-color: #1eb93112;
+    border: none;
+    color: #a0a0a0;
+    opacity: 0.5;
+}
+
+/* H1 */
+x-layout#root > header[tag='h1'] {
+    /* box-shadow: 0px 3px 4px 0px #17171740; */
+    width: 100%;
+}
+x-layout#root > header[tag='h1'] > div[title] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0px 3px 4px 0px #17171740;
+    width: 100%;
+    /* margin-left: 8px; */
+}
+x-layout#root > header[tag='h1'] > div[title] > h1 {
+    width: 100%;
+    justify-self: flex-start;
+    align-self: center;
+}
+
+/* H2 TO H6 */
+x-layout#root > header[tag='h2'] > div[title] {
+    width: 100%;
+    padding: 4px 8px;
+    align-self: center;
+    padding-left: 0;
+}
+
+x-layout#root > header[tag='h2'] > div[title] > h2,
+x-layout#root > header[tag='h2'] > div[title] > h3,
+x-layout#root > header[tag='h2'] > div[title] > h4,
+x-layout#root > header[tag='h2'] > div[title] > h5,
+x-layout#root > header[tag='h2'] > div[title] > h6 {
+    border: 1px solid #e2e2e2;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    text-align: center;
+    color: #2f2f2f;
+    margin-bottom: 0;
+    align-self: center;
+    width: 100%;
+    padding-left: 0;
 }

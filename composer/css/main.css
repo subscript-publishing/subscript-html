@@ -1,22 +1,22 @@
-main {
+x-layout#root {
     display: grid;
     grid-row-gap: 4px;
 }
 
-main > * {
+x-layout#root > * {
     width: 100%;
     justify-self: center;
     padding: 0 12px;
     margin: 0;
 }
 
-main > h1 {
+x-layout#root > h1 {
     width: 100%;
     box-shadow: 0px 3px 4px 0px #17171740;
     border: none;
 }
 
-main > h1[root] {
+x-layout#root > h1[root] {
     background-color: #ffffff;
     color: #212121;
     font-size: 2.3em;
@@ -32,11 +32,11 @@ main > h1[root] {
 }
 
 
-main > h2,
-main > h3,
-main > h4,
-main > h5,
-main > h6 {
+x-layout#root > h2,
+x-layout#root > h3,
+x-layout#root > h4,
+x-layout#root > h5,
+x-layout#root > h6 {
     border: 1px solid #e2e2e2;
     margin-bottom: 4px;
     border-radius: 3px;
@@ -46,15 +46,15 @@ main > h6 {
     margin-bottom: 0;
 }
 
-main > [macro='note'][boxed] {
+x-layout#root > [macro='note'][boxed] {
     width: calc(100% - 24px);
     margin: 0 auto;
 }
 
-main > ol,
-main > ul,
-main > dl,
-main > p {
+x-layout#root > ol,
+x-layout#root > ul,
+x-layout#root > dl,
+x-layout#root > p {
     width: calc(100% - 84px);
     margin: 0 auto;
     padding-left: 0;
