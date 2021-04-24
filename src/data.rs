@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashSet, LinkedList};
 use std::path::{PathBuf, Path};
 use std::convert::AsRef;
 use std::hash::Hash;
@@ -474,6 +474,142 @@ pub struct Element {
     pub children: Vec<Node>,
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// TREE ANNOTATION
+///////////////////////////////////////////////////////////////////////////////
+
+
+fn is_h1_to_h6(tag: &str) -> bool {
+    tag == "h1" ||
+    tag == "h2" ||
+    tag == "h3" ||
+    tag == "h4" ||
+    tag == "h5" ||
+    tag == "h6"
+}
+
+fn generate_path(scope: Vec<(String, String)>, current: (String, String)) -> Vec<String> {
+    let current_tag = current.0;
+    let current_text = current.1;
+    let mut path = LinkedList::default();
+    let mut done = false;
+    let mut index = scope.len();
+    fn to_level(tag: &str) -> usize {
+        match tag {
+            "h1" => 1,
+            "h2" => 2,
+            "h3" => 3,
+            "h4" => 4,
+            "h5" => 5,
+            "h6" => 6,
+            _ => panic!()
+        }
+    }
+    let mut current_level = to_level(&current_tag);
+    while !done && (index > 0) {
+        let (last_tag, last_text) = &scope[index - 1];
+        let last_level = to_level(last_tag);
+        if last_level < current_level {
+            current_level = last_level;
+            path.push_front(last_text);
+        }
+        if index > 0 {
+            index = index - 1;
+        } else {
+            done = true;
+        }
+    }
+    path.into_iter()
+        .map(Clone::clone)
+        .collect::<Vec<_>>()
+}
+
+fn generate_uid(scope: Vec<(String, String)>, current: (String, String)) -> String {
+    let path = generate_path(scope, current.clone()).join("-");
+    let uid = format!("{}--{}", path, current.1);
+    let uid = uid.replace(" ", "_");
+    pub const NON_ALPHANUMERIC: percent_encoding::AsciiSet = percent_encoding::CONTROLS
+        .add(b' ')
+        .add(b'!')
+        .add(b'"')
+        .add(b'#')
+        .add(b'$')
+        .add(b'%')
+        .add(b'&')
+        .add(b'\'')
+        .add(b'(')
+        .add(b')')
+        .add(b'*')
+        .add(b'+')
+        .add(b',')
+        .add(b'.')
+        .add(b'/')
+        .add(b':')
+        .add(b';')
+        .add(b'<')
+        .add(b'=')
+        .add(b'>')
+        .add(b'?')
+        .add(b'@')
+        .add(b'[')
+        .add(b'\\')
+        .add(b']')
+        .add(b'^')
+        .add(b'_')
+        .add(b'`')
+        .add(b'{')
+        .add(b'|')
+        .add(b'}')
+        .add(b'~');
+    percent_encoding::percent_encode(uid.as_bytes(), &NON_ALPHANUMERIC).to_string()
+}
+
+impl Node {
+    pub fn run_tree_annotation(&mut self) {
+        self.tree_annotation(&mut Default::default());
+    }
+    fn tree_annotation(&mut self, parent: &mut LinkedList<(String, String)>) {
+        match self {
+            Node::Element(element) if is_h1_to_h6(element.tag.as_str()) => {
+                let text = Node::Element(element.clone()).get_children_as_text().join("-");
+                // UPDATE ELEMENT
+                if !element.attrs.contains_key("id") {
+                    let uid = generate_uid(
+                        parent.clone().into_iter().collect(),
+                        (element.tag.clone(), text.clone())
+                    );
+                    let res = element.attrs.insert(String::from("id"), uid);
+                    assert!(res.is_none());
+                }
+                // UPDATE SCOPE
+                if !element.attrs.contains_key("toc-ignore") {
+                    if let Some(uid) = element.attrs.get("id") {
+                        parent.push_back((
+                            element.tag.clone(),
+                            uid.clone(),
+                        ));
+                    } else {
+                        parent.push_back((
+                            element.tag.clone(),
+                            text,
+                        ));
+                    }
+                }
+            }
+            Node::Element(element) => {
+                for child in element.children.iter_mut() {
+                    child.tree_annotation(parent);
+                }
+            }
+            Node::Fragment(xs) => {
+                for child in xs.iter_mut() {
+                    child.tree_annotation(parent);
+                }
+            }
+            Node::Text(_) => {}
+        }
+    }
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////

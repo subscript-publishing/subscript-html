@@ -36,6 +36,7 @@ hyper = "0.13"
 headers = "0.3"
 mime_guess = "2.0"
 percent-encoding = "2.1"
+# pct-str = "1.1.0"
 # Compression
 brotli = "3"
 flate2 = "1.0"

@@ -8,7 +8,16 @@ window.MathJax = {
             'Integrate': ['{\\int_{#1}^{#2}\\, #3 \\dx}', 3],
             'IntegrateFor': ['{\\int_{#1}^{#2}\\, #3 {\\, \\mathrm{d}{#4}\\;}}', 4],
             'I': ['{\\Integrate{a}{b}{#1}}', 1],
-            'angles': ['\\langle {#1},{#2} \\rangle', 2]
+            'angles': ['\\langle {#1},{#2} \\rangle', 2],
+            's': ['\\;\\mathrm{{#1}}', 1], // symbol
+            'D': ['{\\frac{\\mathrm{d}{#1}}{\\mathrm{d}{#2}}}', 2],
+            'colorA': ['\\textcolor{Periwinkle}{#1}', 1],
+            'colorB': ['\\textcolor{DarkOrchid}{#1}', 1],
+            'colorC': ['\\textcolor{Aquamarine}{#1}', 1],
+            'colorD': ['\\textcolor{SeaGreen}{#1}', 1],
+            'dPrime': '{\\prime\\prime}',
+            'reciprocal': ['\\frac{1}{#1}', 1],
+            'parens': ['\\left({#1}\\right)', 1],
         },
     },
     // svg: {

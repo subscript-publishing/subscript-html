@@ -501,6 +501,9 @@ pub fn asset_glob_tag(env: &Env) -> TagMacro {
 }
 
 pub fn toc_tag(ctx: &Env, html: &mut Node) {
+    if !(std::env::var("TOC_RANDOM_LINK") == Ok(String::from("1"))) {
+        html.run_tree_annotation();
+    }
     html.eval(Rc::new(|node: &mut Node| {
         if let Some(tag) = node.tag() {
             let mut set_id = || {
