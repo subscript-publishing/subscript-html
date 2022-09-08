@@ -50,7 +50,7 @@ pub struct IoPath {
 ///////////////////////////////////////////////////////////////////////////////
 
 pub struct Handles {
-    rhai_subsystem: crate::embed::rhai::RhaiSubSystem,
+    // rhai_subsystem: crate::embed::rhai::RhaiSubSystem,
 }
 
 #[derive(Clone)]
@@ -203,11 +203,11 @@ pub mod config {
                 std::fs::create_dir_all(&output_dir);
             }
             let handles = {
-                let rhai_subsystem = crate::embed::rhai::RhaiSubSystem::new(
-                    manifest.project.plugins.unwrap_or(Vec::new())
-                );
+                // let rhai_subsystem = crate::embed::rhai::RhaiSubSystem::new(
+                //     manifest.project.plugins.unwrap_or(Vec::new())
+                // );
                 Handles {
-                    rhai_subsystem: rhai_subsystem,
+                    // rhai_subsystem: rhai_subsystem,
                 }
             };
             let macro_system = MacroSystem {
@@ -413,27 +413,27 @@ pub mod cache {
 pub fn apply_macros(env: &Env, html: &mut crate::data::Node) {
     use crate::data::Node;
     let env = env.clone();
-    let rhai_macros = env.handles.access(|handles: &Handles| {
-        handles.rhai_subsystem.get_macro_tag_names()
-    });
+    // let rhai_macros = env.handles.access(|handles: &Handles| {
+    //     handles.rhai_subsystem.get_macro_tag_names()
+    // });
     let rust_macros = crate::macros::tag_macros(&env)
         .into_iter()
         .map(|x| x.tag)
         .collect::<HashSet<_>>();
     html.eval(Rc::new({
         let env = env.clone();
-        let rhai_macros = rhai_macros.clone();
+        // let rhai_macros = rhai_macros.clone();
         move |node: &mut Node| {
             node.tag()
                 .map({
                     |node_tag| {
-                        if rhai_macros.clone().contains(&node_tag) {
-                            env.handles.access_mut({
-                                |handles: &mut Handles| {
-                                    handles.rhai_subsystem.consider_node(node)
-                                }
-                            });
-                        }
+                        // if rhai_macros.clone().contains(&node_tag) {
+                        //     env.handles.access_mut({
+                        //         |handles: &mut Handles| {
+                        //             // handles.rhai_subsystem.consider_node(node)
+                        //         }
+                        //     });
+                        // }
                         if rust_macros.contains(&node_tag) {
                             for tag_macro in crate::macros::tag_macros(&env) {
                                 if tag_macro.tag == node_tag {
@@ -573,7 +573,10 @@ pub fn serve(manifest_path: &str, port: u16, open_browser: bool) {
         config.access(|config| {
             if !path.starts_with(&config.output_dir.clone()) {
                 build(config, io_paths, Some(path.clone()), None);
-                println!("[Subscript] Compiled [{}]", path.to_str().unwrap());
+                use chrono::Local;
+                let date = Local::now();
+                let timestamp = date.format("%H:%M:%S");
+                println!("[{}] [Subscript] Compiled [{}]", timestamp, path.to_str().unwrap());
             }
         })
     };

@@ -78,24 +78,44 @@ pub fn img_tag(env: &Env) -> TagMacro {
     let processed_attr = "ss.img.processed";
     let callback = Rc::new(move |node: &mut Node| {
         node
-            .get_attr("width")
+            .get_attr("max-width")
             .map(|width| {
-                if node.has_attr("ss.proc.width") {
+                if node.has_attr("ss.proc.max-width") {
                     return;
                 }
                 if let Some(style) = node.get_attr("style") {
                     node.set_attr("style", format!(
-                        "{}; min-width: 0; max-width: {}; width: 100%;",
-                        style,
+                        "max-width: {}; width: 100%;{}",
                         width,
+                        style,
                     ));
                 } else {
                     node.set_attr("style", format!(
-                        ";min-width: 0; max-width: {}; width: 100%;",
+                        "max-width: {}; width: 100%;",
                         width,
                     ));
                 }
-                node.set_attr("ss.proc.width", String::new());
+                node.set_attr("ss.proc.max-width", String::new());
+            });
+        node
+            .get_attr("min-width")
+            .map(|width| {
+                if node.has_attr("ss.proc.min-width") {
+                    return;
+                }
+                if let Some(style) = node.get_attr("style") {
+                    node.set_attr("style", format!(
+                        "min-width: {}; {}",
+                        width,
+                        style,
+                    ));
+                } else {
+                    node.set_attr("style", format!(
+                        "min-width: {};",
+                        width,
+                    ));
+                }
+                node.set_attr("ss.proc.min-width", String::new());
             });
         // CACHE ASSET
         node.get_attr("src")
@@ -110,6 +130,13 @@ pub fn img_tag(env: &Env) -> TagMacro {
                 }
                 Some(())
             });
+        *node = Node::new_element(
+            "div",
+            html_attrs!{
+                "image-wrapper": ""
+            },
+            vec![node.clone()],
+        );
     });
     TagMacro {
         tag: String::from("img"),
@@ -330,13 +357,13 @@ pub fn layout_tag(ctx: &Env) -> TagMacro {
                 let children = node
                     .get_children()
                     .into_iter()
-                    .map(|x| Node::new_element(
-                        "div",
-                        html_attrs!{
-                            "boxed-child": ""
-                        },
-                        vec![x],
-                    ))
+                    // .map(|x| Node::new_element(
+                    //     "div",
+                    //     html_attrs!{
+                    //         "boxed-child": ""
+                    //     },
+                    //     vec![x],
+                    // ))
                     .collect::<Vec<_>>();
                 node.replace_children(children);
             }

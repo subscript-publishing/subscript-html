@@ -1,6 +1,7 @@
 <!-- MATH-JAX -->
 <script>
 window.MathJax = {
+    loader: {load: ['[tex]/mhchem']},
     tex: {
         inlineMath: [['\\(', '\\)'], ['stem:[', ']'], ['`', '`']],
         macros: {
@@ -18,7 +19,16 @@ window.MathJax = {
             'dPrime': '{\\prime\\prime}',
             'reciprocal': ['\\frac{1}{#1}', 1],
             'parens': ['\\left({#1}\\right)', 1],
+            'mol': "\\;\\mathrm{mol}",
+            'a': "\\frac{\\mathrm{m}}{\\mathrm{s}^2}",
+            'v': "\\frac{\\mathrm{m}}{\\mathrm{s}}",
+            'm': "\\mathrm{m}",
+            'sci': ["{#1}\\times10^{{#2}}", 2],
         },
+        packages: {
+            '[+]': ['tagformat', 'mhchem'],
+        },
+        // extensions: ["[mhchem]/mhchem.js"],
     },
     // svg: {
     //     fontCache: 'global',

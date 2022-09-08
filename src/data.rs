@@ -299,6 +299,9 @@ impl Node {
             _ => None
         }
     }
+    // pub fn remove_attr(&mut self, key: &str) {
+
+    // }
     pub fn set_attr(&mut self, key: &str, value: String) {
         match self {
             Node::Element(element) => {

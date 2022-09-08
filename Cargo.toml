@@ -1,5 +1,5 @@
 [package]
-name = "subscript"
+name = "subscript-html"
 version = "0.3.0"
 authors = ["Colbyn Wadman <hello@colbyn.com>"]
 edition = "2018"
@@ -27,7 +27,7 @@ rand = "0.7.3"
 hotwatch = "0.4.5"
 rayon = "1.5.0"
 toml = "0.5"
-rhai = {version = "0.19.7", features = ["serde", "unchecked"]}
+# rhai = {version = "0.19.7", features = ["serde", "unchecked"]}
 grass = "0.10.4"
 
 # Server
